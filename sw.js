@@ -1,7 +1,7 @@
 /* Service worker: lưu sẵn giao diện để ứng dụng mở ngay, kể cả khi mạng yếu.
    Dữ liệu (gọi tới script.google.com) KHÔNG đi qua đây – luôn lấy mới từ máy chủ.
    Mỗi lần sửa index.html/config.js: tăng số phiên bản dưới đây để máy người dùng nhận bản mới. */
-const PHIEN_BAN = 'qlct-v3';
+const PHIEN_BAN = 'qlct-v4';
 const FILES = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 self.addEventListener('install', function (e) {

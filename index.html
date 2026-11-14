@@ -302,8 +302,22 @@ function hangChoView(){
 
 /* ===== ĐĂNG NHẬP GOOGLE ===== */
 var GIS_OK=false,GIS_MSG=null;
+/* trình duyệt nhúng trong Zalo, Messenger, Facebook, Instagram, TikTok… – Google không cho đăng nhập trong đó */
+function trongAppKhac(){var u=navigator.userAgent||'';return /Zalo|FBAN|FBAV|FB_IAB|Instagram|Line\/|TikTok|musical_ly|; wv\)/i.test(u)}
+function moBangChrome(){
+  var url=location.href.split('#')[0];
+  if(/Android/i.test(navigator.userAgent))location.href='intent://'+url.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;end';
+  else{try{navigator.clipboard.writeText(url)}catch(e){}alert('Đã chép đường dẫn. Hãy mở Safari/Chrome và dán vào thanh địa chỉ.')}
+}
 function dangNhapView(loi){
   var box=el('div',{class:'gbtn'}),msg=el('div',{});GIS_MSG=msg;
+  if(trongAppKhac()){
+    show([el('div',{class:'card'},[el('p',{class:'hello',text:'Mở bằng Chrome để đăng nhập'}),
+      el('p',{text:'Bạn đang mở ứng dụng bên trong Zalo/Facebook. Google không cho đăng nhập ở đây.'}),
+      el('p',{},[el('button',{class:'p',text:'Mở bằng Chrome',onclick:moBangChrome})]),
+      el('p',{class:'mut',text:'Hoặc bấm dấu ⋮ / ••• ở góc trên → "Mở bằng trình duyệt" (Open in browser). Sau đó cài app lên màn hình chính để lần sau mở trực tiếp.'})])]);
+    return;
+  }
   if(loi)msg.appendChild(el('div',{class:'bad',text:loi}));
   show([el('div',{class:'card'},[el('p',{class:'hello',text:'Đăng nhập'}),
     el('p',{class:'mut',text:'Dùng tài khoản Google (Gmail) đã đăng ký với quản trị. Mỗi máy chỉ cần đăng nhập một lần, phiên đăng nhập giữ 30 ngày.'}),box,msg])]);
@@ -311,8 +325,19 @@ function dangNhapView(loi){
   (function cho(){
     if(window.google&&google.accounts&&google.accounts.id){
       if(!CH.CLIENT_ID){msg.appendChild(el('div',{class:'bad',text:'Chưa cấu hình CLIENT_ID trong config.js.'}));return}
-      if(!GIS_OK){google.accounts.id.initialize({client_id:CH.CLIENT_ID,callback:function(resp){daNhanGoogle(resp,GIS_MSG)},auto_select:false,cancel_on_tap_outside:true});GIS_OK=true}
+      if(!GIS_OK){google.accounts.id.initialize({client_id:CH.CLIENT_ID,callback:function(resp){daNhanGoogle(resp,GIS_MSG)},
+        auto_select:false,cancel_on_tap_outside:true,use_fedcm_for_button:true,use_fedcm_for_prompt:true,itp_support:true});GIS_OK=true}
       google.accounts.id.renderButton(box,{theme:'filled_blue',size:'large',text:'signin_with',shape:'pill',locale:'vi'});
+      // cách dự phòng: bảng chọn tài khoản của trình duyệt (không mở cửa sổ mới)
+      msg.appendChild(el('p',{class:'mut',style:'text-align:center'},[el('span',{text:'Bấm nút xong mà bị đứng màn hình trắng? '}),
+        el('span',{class:'link',text:'Thử cách đăng nhập khác',onclick:function(){
+          try{google.accounts.id.prompt(function(n){
+            if(n&&((n.isNotDisplayed&&n.isNotDisplayed())||(n.isSkippedMoment&&n.isSkippedMoment()))){
+              var lydo=n.getNotDisplayedReason?n.getNotDisplayedReason():(n.getSkippedReason?n.getSkippedReason():'');
+              GIS_MSG.appendChild(el('div',{class:'bad',text:'Trình duyệt chưa hiện được bảng đăng nhập'+(lydo?' ('+lydo+')':'')+'. Hãy mở link bằng Chrome (không qua Zalo), hoặc vào Cài đặt Chrome → Quyền riêng tư → bật "Cho phép cookie bên thứ ba" cho accounts.google.com.'}));
+            }
+          })}catch(e){GIS_MSG.appendChild(el('div',{class:'bad',text:errMsg(e)}))}
+        }})]));
       return;
     }
     if(++thu>100){msg.appendChild(el('div',{class:'bad',text:'Không tải được nút đăng nhập Google. Kiểm tra mạng rồi mở lại.'}));msg.appendChild(retry(function(){location.reload()}));return}
