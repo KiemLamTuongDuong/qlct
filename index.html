@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Quản lý công tác</title>
+<title>Hệ thống quản lý công tác – Hạt Kiểm lâm Tương Dương</title>
 <meta name="theme-color" content="#1f5c3a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -14,9 +14,12 @@
 :root{--g:#1f5c3a;--g2:#2e7d4f;--bg:#f3f6f4;--tx:#1d2b24;--mut:#6b7a72;--line:#dfe6e2;--red:#c0392b;--sel:#2e7d4f}
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--tx);font-size:17px;line-height:1.4}
-header{background:var(--g);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px}
-header h1{margin:0;font-size:20px;flex:1}
-header small{opacity:.85;display:block;font-weight:normal;font-size:14px}
+header{background:var(--g);color:#fff;padding:8px 12px;position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px}
+header .logo{height:46px;width:auto;flex:none}
+header .phai{min-width:34px;display:flex;gap:6px;justify-content:flex-end;align-items:center;flex:none}
+header h1{margin:0;font-size:clamp(12px,3.75vw,21px);flex:1;min-width:0;text-align:center;line-height:1.25}
+header h1 #donvi{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header small{opacity:.9;display:block;font-weight:normal;font-size:clamp(12px,3.5vw,15px)}
 header .back{cursor:pointer;font-size:28px;padding:0 10px 0 2px;line-height:1}
 main{max-width:820px;margin:0 auto;padding:14px}
 .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
@@ -29,16 +32,19 @@ main{max-width:820px;margin:0 auto;padding:14px}
 .tile .ic{font-size:26px}.tile .t{font-weight:bold;margin-top:6px;font-size:14px}.tile .s{color:var(--mut);font-size:12px;margin-top:2px}
 .tile.off{opacity:.55;cursor:default;border-top-color:#b5bfba}
 /* trang chủ: 6 ô lớn chia đều màn hình điện thoại */
-main.home{display:flex;flex-direction:column;min-height:calc(100vh - 64px);min-height:calc(100svh - 64px);box-sizing:border-box}
-main.home .chao{padding:12px 16px;margin-bottom:10px}
-main.home .chao .hello{font-size:21px;margin:0 0 4px}
-.grid.g6{flex:1;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,minmax(130px,1fr));gap:12px}
+main.home{display:flex;flex-direction:column;min-height:calc(100vh - 66px);min-height:calc(100svh - 66px);box-sizing:border-box}
+main.home .chao{padding:10px 14px;margin-bottom:10px}
+main.home .chao .chip{font-size:13px;padding:3px 9px;margin:1px 3px 1px 0}
+main.home .chao .mut{font-size:14px}
+main.home .chao .hello{font-size:20px;margin:0 0 4px}
+.grid.g6{flex:1;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,minmax(120px,1fr));gap:10px}
 .grid.g6 .tile{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;padding:12px 8px;border-top-width:6px}
-.grid.g6 .tile .ic{font-size:52px;line-height:1.1}
-.grid.g6 .tile .t{font-size:21px;margin-top:10px}
-.grid.g6 .tile .s{font-size:15px;margin-top:4px}
+.grid.g6 .tile .ic{font-size:58px;line-height:1.05}
+.grid.g6 .tile .t{font-size:22px;line-height:1.2;margin-top:8px}
+.grid.g6 .tile .s{font-size:15px;line-height:1.25;margin-top:4px}
 .grid.g6 .badge{font-size:15px;padding:2px 10px;top:10px;right:12px}
-@media(min-width:900px){.grid.g6{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,minmax(170px,1fr))}}
+@media(max-width:380px){.grid.g6 .tile .ic{font-size:56px}.grid.g6 .tile .t{font-size:21px}.grid.g6 .tile .s{font-size:15px}}
+@media(min-width:900px){.grid.g6{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,minmax(180px,1fr))}.grid.g6 .tile .ic{font-size:72px}.grid.g6 .tile .t{font-size:24px}}
 .grid.qt{grid-template-columns:repeat(3,1fr);margin-top:12px}
 .grid.qt .tile{min-height:0;padding:10px 6px}.grid.qt .tile .ic{font-size:26px}.grid.qt .tile .t{font-size:15px}.grid.qt .tile .s{display:none}
 .cochu{display:inline-flex;gap:4px;align-items:center}
@@ -119,6 +125,8 @@ table.hat .me td.nm{background:#e6f2ea;font-weight:bold}
 .hc{background:#fff;color:var(--g);font-size:12px;font-weight:bold;padding:3px 8px;border-radius:10px;cursor:pointer}
 .hc.loi{background:#fbe3e0;color:#c0392b}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#1d2b24;color:#fff;padding:12px 18px;border-radius:12px;font-size:16px;z-index:60;max-width:90%}
+.capnhat{position:fixed;left:0;right:0;bottom:0;background:#fff8e1;border-top:2px solid #e0b000;padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:center;z-index:70;font-size:16px}
+.capnhat .p{width:auto;padding:8px 16px}
 .sync{font-size:18px;opacity:.85;animation:quay 1.2s linear infinite}
 @keyframes quay{to{transform:rotate(360deg)}}
 .gbtn{display:flex;justify-content:center;margin:16px 0 6px;min-height:44px}
@@ -157,7 +165,7 @@ table.tbl th{background:#e6f2ea}table.tbl td:first-child,table.tbl th:first-chil
 </style>
 </head>
 <body>
-<header><span class="back" id="back" style="display:none">&#8592;</span><h1>Quản lý công tác<small id="donvi">Hạt Kiểm lâm Tương Dương</small></h1> <span id="hc" class="hc" style="display:none"></span><span id="sync" class="sync" style="display:none" title="Đang cập nhật dữ liệu mới">⟳</span><span id="net" class="net" style="display:none">Mất mạng</span></header>
+<header><span class="back" id="back" style="display:none">&#8592;</span><img class="logo" src="logo.png" alt="Kiểm lâm"><h1><span id="donvi">HẠT KIỂM LÂM TƯƠNG DƯƠNG</span><small>Hệ thống quản lý công tác</small></h1><span class="phai"><span id="hc" class="hc" style="display:none"></span><span id="sync" class="sync" style="display:none" title="Đang cập nhật dữ liệu mới">⟳</span><span id="net" class="net" style="display:none">Mất mạng</span></span></header>
 <main id="app"><div class="card">Đang tải…</div></main>
 <script>
 var $=function(id){return document.getElementById(id)};
@@ -336,6 +344,26 @@ window.addEventListener('popstate',function(){
   clearTimeout(HEN_CHAN);HEN_CHAN=setTimeout(datChan,2000);
 });
 
+/* ===== TỰ CẬP NHẬT ỨNG DỤNG =====
+   SW báo có bản mới → đang ở trang chủ (không nhập dở) thì tự tải lại; đang ở màn khác thì hiện thanh "Cập nhật ngay". */
+var BAN_MOI=false,LAN_KT=0;
+function kiemTraBanMoi(){
+  if(Date.now()-LAN_KT<60000)return;LAN_KT=Date.now();
+  try{fetch('index.html',{cache:'no-store'}).catch(function(){});fetch('config.js',{cache:'no-store'}).catch(function(){})}catch(e){}
+}
+function capNhatNgay(){try{sessionStorage.setItem('qlct_vua_cn','1')}catch(e){}location.reload()}
+function coBanMoi(){
+  if(BAN_MOI)return;BAN_MOI=true;
+  if(!CUR_BACK&&hangCho().length===0){thongBao('🔄 Đang cập nhật ứng dụng lên bản mới…',2500);setTimeout(function(){if(!CUR_BACK)capNhatNgay();else hienThanhCapNhat()},2500);return}
+  hienThanhCapNhat();
+}
+function hienThanhCapNhat(){
+  if($('capnhat'))return;
+  var b=el('div',{id:'capnhat',class:'capnhat'},[el('span',{text:'🔄 Có bản cập nhật mới.'}),el('button',{class:'p',text:'Cập nhật ngay',onclick:capNhatNgay})]);
+  document.body.appendChild(b);
+}
+setTimeout(function(){try{if(sessionStorage.getItem('qlct_vua_cn')){sessionStorage.removeItem('qlct_vua_cn');thongBao('✅ Đã cập nhật ứng dụng lên bản mới.',3000)}}catch(e){}},1200);
+
 /* ===== THÔNG BÁO ĐẨY (Firebase Cloud Messaging) =====
    Cần trong config.js: FIREBASE (cấu hình ứng dụng web Firebase) và VAPID_KEY (Web Push certificate). */
 var FB_VER='10.13.2',MSG=null;
@@ -488,8 +516,14 @@ function dangXuat(){
 function capNhatMang(){var n=$('net');if(n)n.style.display=navigator.onLine?'none':''}
 window.addEventListener('online',capNhatMang);window.addEventListener('offline',capNhatMang);
 if('serviceWorker' in navigator&&location.protocol==='https:'){
-  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
-  navigator.serviceWorker.addEventListener('message',function(e){var d=e.data||{};if(d.mo){if(d.mo==='nv')nvHome();else if(d.mo==='lich')lichHome();else if(d.mo==='cm')cmHome();else boot()}});
+  var DA_CO_SW=!!navigator.serviceWorker.controller;
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(reg){
+    // quay lại app từ nền: kiểm tra bản mới (sw.js qua reg.update, index.html/config.js qua SW)
+    document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&navigator.onLine){reg.update().catch(function(){});kiemTraBanMoi()}});
+  }).catch(function(){})});
+  // sw.js mới được cài và nhận quyền điều khiển trang → có bản mới
+  navigator.serviceWorker.addEventListener('controllerchange',function(){if(DA_CO_SW)coBanMoi();DA_CO_SW=true});
+  navigator.serviceWorker.addEventListener('message',function(e){var d=e.data||{};if(d.capNhat){coBanMoi();return}if(d.mo){if(d.mo==='nv')nvHome();else if(d.mo==='lich')lichHome();else if(d.mo==='cm')cmHome();else boot()}});
 }
 function el(tag,attrs,children){
   var e=document.createElement(tag);
@@ -519,7 +553,7 @@ function retry(fn){return el('p',{},[el('span',{class:'link',text:'Thử lại',
 
 /* ---------- khởi động ---------- */
 function boot(){
-  if(CH.TEN_DON_VI&&$('donvi'))$('donvi').textContent=CH.TEN_DON_VI;
+  if(CH.TEN_DON_VI&&$('donvi'))$('donvi').textContent=CH.TEN_DON_VI.toLocaleUpperCase('vi');
   capNhatMang();
   if(!(phien()||{}).token){dangNhapView();return}
   show([msgCard('Đang tải…')]);

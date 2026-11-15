@@ -1,8 +1,8 @@
 /* Service worker:
    1) Lưu sẵn giao diện để ứng dụng mở ngay, kể cả khi mạng yếu. Dữ liệu (script.google.com) không đi qua đây.
    2) Nhận thông báo đẩy (Firebase Cloud Messaging) khi ứng dụng đang đóng, chạm vào thì mở đúng màn hình.
-   Mỗi lần sửa index.html/config.js: tăng số phiên bản dưới đây để máy người dùng nhận bản mới. */
-const PHIEN_BAN = 'qlct-v6';
+   Tự cập nhật: sửa index.html/config.js trên GitHub là đủ, app tự phát hiện. Chỉ đổi PHIEN_BAN khi thêm/bớt file trong FILES. */
+const PHIEN_BAN = 'qlct-v7';
 const FILES = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 // ---- thông báo đẩy: đọc cấu hình Firebase trong config.js (file đó ghi window.CAU_HINH) ----
@@ -43,13 +43,28 @@ self.addEventListener('activate', function (e) {
     return Promise.all(ks.filter(function (k) { return k !== PHIEN_BAN; }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
-/* Giao diện: trả bản đã lưu ngay, đồng thời tải bản mới về để lần mở sau dùng (stale-while-revalidate). */
+/* Giao diện: trả bản đã lưu ngay (mở nhanh), đồng thời hỏi lại GitHub xem có bản mới không.
+   Nếu index.html / config.js trên GitHub khác bản đang lưu → lưu bản mới và báo cho app biết để tự cập nhật. */
+const THEO_DOI = /(\/|index\.html|config\.js)$/;
+function baoCapNhat() {
+  return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (ds) {
+    ds.forEach(function (c) { c.postMessage({ capNhat: true }); });
+  });
+}
 self.addEventListener('fetch', function (e) {
-  const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const req = e.request, url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  const key = url.pathname === new URL(self.registration.scope).pathname ? './' : req;
   e.respondWith(caches.open(PHIEN_BAN).then(function (c) {
-    return c.match(req, { ignoreSearch: true }).then(function (hit) {
-      const net = fetch(req).then(function (res) { if (res && res.ok) c.put(req, res.clone()); return res; }).catch(function () { return hit; });
+    return c.match(key, { ignoreSearch: true }).then(function (hit) {
+      const net = fetch(req, { cache: 'no-cache' }).then(function (res) {
+        if (!res || !res.ok) return res;
+        const moi = res.clone();
+        e.waitUntil((hit && THEO_DOI.test(url.pathname) ? Promise.all([moi.clone().text(), hit.clone().text()]).then(function (t) {
+          return c.put(key, moi).then(function () { if (t[0] !== t[1]) return baoCapNhat(); });
+        }) : c.put(key, moi)).catch(function () {}));
+        return res;
+      }).catch(function () { return hit; });
       return hit || net;
     });
   }));
