@@ -342,6 +342,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
+var BAN_APP='15/11/2026-b (báo hoàn thành ↔ nhật ký)';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -630,7 +631,7 @@ function home(){
   var coChu=el('span',{class:'cochu'},[el('span',{text:'Cỡ chữ:',style:'border:none;padding:0;cursor:default;font-weight:normal;color:var(--mut)'})].concat(
     [['1','A'],['1.12','A+'],['1.25','A++']].map(function(x){return el('span',{class:CO_CHU===x[0]?'on':'',text:x[1],onclick:function(){datCoChu(x[0]);home()}})})));
   show([el('div',{class:'card chao'},[el('p',{class:'hello',text:'Xin chào, '+u.ten}),el('div',{},chips),
-        el('p',{class:'mut',style:'margin:6px 0 0'},[el('span',{class:'link',text:'🔔 Thông báo',onclick:tbView}),el('span',{text:' · '}),el('span',{class:'link',text:'Đăng xuất',onclick:dangXuat}),el('span',{text:' · '}),coChu])]),
+        el('p',{class:'mut',style:'margin:6px 0 0'},[el('span',{class:'link',text:'🔔 Thông báo',onclick:tbView}),el('span',{text:' · '}),el('span',{class:'link',text:'Đăng xuất',onclick:dangXuat}),el('span',{text:' · '}),coChu]),el('div',{class:'mut',style:'font-size:11px;margin-top:4px',text:'Phiên bản '+BAN_APP})]),
     moiBatThongBao(),grid,qt]);
   $('app').className='home';
 }
