@@ -2,7 +2,7 @@
    1) Lưu sẵn giao diện để ứng dụng mở ngay, kể cả khi mạng yếu. Dữ liệu (script.google.com) không đi qua đây.
    2) Nhận thông báo đẩy (Firebase Cloud Messaging) khi ứng dụng đang đóng, chạm vào thì mở đúng màn hình.
    Mỗi lần sửa index.html/config.js: tăng số phiên bản dưới đây để máy người dùng nhận bản mới. */
-const PHIEN_BAN = 'qlct-v5';
+const PHIEN_BAN = 'qlct-v6';
 const FILES = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
 
 // ---- thông báo đẩy: đọc cấu hình Firebase trong config.js (file đó ghi window.CAU_HINH) ----
