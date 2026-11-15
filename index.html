@@ -342,7 +342,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='15/11/2026-b (báo hoàn thành ↔ nhật ký)';
+var BAN_APP='15/11/2026-c (báo hoàn thành ↔ nhật ký)';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -368,8 +368,22 @@ var BAN_MOI=false,LAN_KT=0;
 function kiemTraBanMoi(){
   if(Date.now()-LAN_KT<60000)return;LAN_KT=Date.now();
   try{fetch('index.html',{cache:'no-store'}).catch(function(){});fetch('config.js',{cache:'no-store'}).catch(function(){})}catch(e){}
+  /* So trực tiếp với GitHub (không qua bộ nhớ của service worker): mã chương trình khác bản đang chạy → có bản mới */
+  try{fetch(location.pathname+'?kt='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
+    if(!t)return;
+    var moi=[],re=/<script>([\s\S]*?)<\/script>/g,m;while((m=re.exec(t)))moi.push(m[1]);
+    var cu=[].filter.call(document.scripts,function(x){return !x.src}).map(function(x){return x.textContent});
+    if(moi.length&&moi.join('')!==cu.join(''))coBanMoi();
+  }).catch(function(){})}catch(e){}
 }
-function capNhatNgay(){try{sessionStorage.setItem('qlct_vua_cn','1')}catch(e){}location.reload()}
+function capNhatNgay(){
+  try{sessionStorage.setItem('qlct_vua_cn','1')}catch(e){}
+  /* xóa bản giao diện cũ trong bộ nhớ để lần tải lại lấy chắc chắn bản mới */
+  var xong=function(){location.reload()};
+  try{if(window.caches){caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.open(k).then(function(c){
+    var g=location.pathname.replace(/[^\/]*$/,'');return Promise.all([c.delete(g,{ignoreSearch:true}),c.delete(g+'index.html',{ignoreSearch:true}),c.delete(g+'config.js',{ignoreSearch:true})])})}))}).then(xong,xong);return}}catch(e){}
+  xong();
+}
 function coBanMoi(){
   if(BAN_MOI)return;BAN_MOI=true;
   if(!CUR_BACK&&hangCho().length===0){thongBao('🔄 Đang cập nhật ứng dụng lên bản mới…',2500);setTimeout(function(){if(!CUR_BACK)capNhatNgay();else hienThanhCapNhat()},2500);return}
@@ -538,6 +552,7 @@ if('serviceWorker' in navigator&&location.protocol==='https:'){
   window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(reg){
     // quay lại app từ nền: kiểm tra bản mới (sw.js qua reg.update, index.html/config.js qua SW)
     document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&navigator.onLine){reg.update().catch(function(){});kiemTraBanMoi()}});
+    setTimeout(function(){if(navigator.onLine)kiemTraBanMoi()},2500);
   }).catch(function(){})});
   // sw.js mới được cài và nhận quyền điều khiển trang → có bản mới
   navigator.serviceWorker.addEventListener('controllerchange',function(){if(DA_CO_SW)coBanMoi();DA_CO_SW=true});
