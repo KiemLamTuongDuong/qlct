@@ -185,7 +185,7 @@ function call(action,params,khongXepHang){
    Ghi/sửa/xóa thành công → xóa bản lưu của các màn hình xem. */
 var VIEW=0,LATEST={},PENDING=0;
 var GHI_XOA_HET={QT_SUA_NGUOI:1,QT_DOI_NAM:1,DUYET:1,GUI_YEU_CAU:1};
-var CHI_DOC={ME:1,NK_CAUHINH:1,NV_CAUHINH:1,SLT_CAUHINH:1,NK_DS:1,NV_DS:1,SLT_DS:1,SLT_LAY:1,LICH_THANG:1,BC_TINH:1,CM_LAY:1,QT_CAUHINH:1,DS_YEU_CAU:1};
+var CHI_DOC={PUSH_DANGKY:1,PUSH_HUY:1,PUSH_THU:1,ME:1,NK_CAUHINH:1,NV_CAUHINH:1,SLT_CAUHINH:1,NK_DS:1,NV_DS:1,SLT_DS:1,SLT_LAY:1,LICH_THANG:1,BC_TINH:1,CM_LAY:1,QT_CAUHINH:1,DS_YEU_CAU:1};
 function ckey(kind,action,params){return 'qlct_c:'+((phien()||{}).email||'')+':'+kind+':'+action+':'+JSON.stringify(params||{})}
 function cget(k){try{var o=JSON.parse(localStorage.getItem(k)||'null');if(o&&Date.now()-o.t<30*864e5)return o}catch(e){}return null}
 function cset(k,d){
@@ -300,6 +300,96 @@ function hangChoView(){
   show(nodes,boot);
 }
 
+/* ===== THÔNG BÁO ĐẨY (Firebase Cloud Messaging) =====
+   Cần trong config.js: FIREBASE (cấu hình ứng dụng web Firebase) và VAPID_KEY (Web Push certificate). */
+var FB_VER='10.13.2',MSG=null;
+function pkey(){return 'qlct_push:'+((phien()||{}).email||'')}
+function laIOS(){return /iPhone|iPad|iPod/i.test(navigator.userAgent)}
+function daCaiApp(){return (window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true}
+function pushHoTro(){return !!(CH.FIREBASE&&CH.FIREBASE.apiKey&&CH.VAPID_KEY&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window)}
+function tenMay(){var u=navigator.userAgent,os=/Android/i.test(u)?'Android':laIOS()?'iPhone/iPad':/Windows/i.test(u)?'Windows':/Mac/i.test(u)?'Mac':'Khác';
+  var br=/Edg\//.test(u)?'Edge':/Chrome\//.test(u)?'Chrome':/Safari\//.test(u)?'Safari':/Firefox\//.test(u)?'Firefox':'';return os+(br?' · '+br:'')+(daCaiApp()?' · app':'')}
+function napJs(src){return new Promise(function(res,rej){var x=document.createElement('script');x.src=src;x.onload=res;x.onerror=function(){rej(new Error('Không tải được thư viện thông báo (kiểm tra mạng).'))};document.head.appendChild(x)})}
+function napFirebase(){
+  if(MSG)return Promise.resolve(MSG);
+  var b='https://www.gstatic.com/firebasejs/'+FB_VER+'/';
+  return napJs(b+'firebase-app-compat.js').then(function(){return napJs(b+'firebase-messaging-compat.js')}).then(function(){
+    if(!firebase.apps.length)firebase.initializeApp(CH.FIREBASE);
+    MSG=firebase.messaging();
+    // ứng dụng đang mở: hiện thông báo nhỏ trong app
+    MSG.onMessage(function(p){var d=(p&&p.data)||{};thongBao('🔔 '+(d.title?d.title+': ':'')+(d.body||''))});
+    return MSG;
+  });
+}
+function layToken(){return napFirebase().then(function(m){return navigator.serviceWorker.ready.then(function(reg){return m.getToken({vapidKey:CH.VAPID_KEY,serviceWorkerRegistration:reg})})})}
+function batThongBao(){
+  return Notification.requestPermission().then(function(q){
+    if(q!=='granted')throw new Error(q==='denied'?'Thông báo đang bị chặn. Bấm biểu tượng ổ khóa/ⓘ cạnh thanh địa chỉ (hoặc Cài đặt điện thoại → Ứng dụng → Chrome → Thông báo) để cho phép rồi thử lại.':'Bạn chưa cho phép thông báo.');
+    return layToken();
+  }).then(function(t){
+    if(!t)throw new Error('Không lấy được mã thông báo của máy.');
+    return call('PUSH_DANGKY',{token:t,tb:tenMay()}).then(function(r){
+      if(!r||!r.ok)throw new Error((r&&r.message)||'Không đăng ký được.');
+      try{localStorage.setItem(pkey(),t)}catch(e){}
+      return r;
+    });
+  });
+}
+function tatThongBao(){
+  var t=null;try{t=localStorage.getItem(pkey());localStorage.removeItem(pkey())}catch(e){}
+  return (t?call('PUSH_HUY',{token:t}):Promise.resolve()).then(function(){return napFirebase().then(function(m){return m.deleteToken()}).catch(function(){})});
+}
+/* mở app: mã của máy có thể được Firebase đổi → cập nhật lên máy chủ; đồng thời bật nhận thông báo khi app đang mở */
+function lamMoiToken(){
+  try{if(!pushHoTro()||Notification.permission!=='granted'||!localStorage.getItem(pkey())||!navigator.onLine)return}catch(e){return}
+  layToken().then(function(t){
+    if(t&&t!==localStorage.getItem(pkey()))call('PUSH_DANGKY',{token:t,tb:tenMay()}).then(function(r){if(r&&r.ok)try{localStorage.setItem(pkey(),t)}catch(e){}});
+  }).catch(function(){});
+}
+function moiBatThongBao(){
+  try{if(!pushHoTro()||Notification.permission!=='default'||localStorage.getItem('qlct_push_bo'))return null}catch(e){return null}
+  var box=el('div',{class:'card',style:'border-left:4px solid var(--g2)'});
+  var msg=el('div',{});
+  box.appendChild(el('div',{text:'🔔 Bật thông báo để biết ngay khi được giao nhiệm vụ hoặc có người ghi nhật ký cùng bạn.'}));
+  box.appendChild(el('p',{},[el('button',{class:'p',text:'Bật thông báo',onclick:function(){
+    msg.innerHTML='';batThongBao().then(function(){box.innerHTML='';box.appendChild(el('div',{class:'ok',text:'Đã bật thông báo trên máy này.'}))}).catch(function(e){msg.appendChild(el('div',{class:'bad',text:errMsg(e)}))})}}),' ',
+    el('button',{class:'s',text:'Để sau',onclick:function(){try{localStorage.setItem('qlct_push_bo','1')}catch(e){}box.remove()}})]));
+  box.appendChild(msg);
+  return box;
+}
+function tbView(){
+  var nodes=[],msg=el('div',{});
+  if(!CH.FIREBASE||!CH.FIREBASE.apiKey||!CH.VAPID_KEY)nodes.push(msgCard('Quản trị chưa cấu hình thông báo (thiếu FIREBASE / VAPID_KEY trong config.js).',true));
+  else if(laIOS()&&!daCaiApp())nodes.push(msgCard('Trên iPhone/iPad: mở bằng Safari → nút Chia sẻ → "Thêm vào Màn hình chính", rồi mở app từ biểu tượng đó (cần iOS 16.4 trở lên) mới bật được thông báo.'));
+  else if(!pushHoTro())nodes.push(msgCard('Trình duyệt này không hỗ trợ thông báo đẩy. Hãy dùng Chrome hoặc Edge.',true));
+  else{
+    var q=Notification.permission,co=false;try{co=!!localStorage.getItem(pkey())}catch(e){}
+    var tt=q==='granted'&&co?'✅ Đang bật trên máy này ('+tenMay()+').':q==='denied'?'⛔ Thông báo đang bị chặn trong cài đặt trình duyệt/điện thoại.':'Chưa bật trên máy này.';
+    var bt=[];
+    if(!(q==='granted'&&co))bt.push(el('button',{class:'p',text:'Bật thông báo',onclick:function(){msg.innerHTML='';msg.appendChild(el('div',{class:'mut',text:'Đang bật…'}));
+      batThongBao().then(function(){tbView()}).catch(function(e){msg.innerHTML='';msg.appendChild(el('div',{class:'bad',text:errMsg(e)}))})}}));
+    else{
+      bt.push(el('button',{class:'s',text:'Gửi thử',onclick:function(){msg.innerHTML='';call('PUSH_THU').then(function(r){msg.innerHTML='';msg.appendChild(el('div',{class:r&&r.ok?'ok':'bad',text:r&&r.ok?('Đã gửi tới '+r.soMay+' máy. Thông báo sẽ hiện sau vài giây.'):((r&&r.message)||'Lỗi')}))}).catch(function(e){msg.appendChild(el('div',{class:'bad',text:errMsg(e)}))})}}));
+      bt.push(' ',el('button',{class:'d',text:'Tắt trên máy này',onclick:function(){tatThongBao().then(function(){tbView()})}}));
+    }
+    nodes.push(el('div',{class:'card'},[el('p',{class:'hello',text:'Thông báo trên máy này'}),el('div',{text:tt}),el('p',{},bt),msg]));
+  }
+  nodes.push(el('div',{class:'card'},[el('div',{class:'gt',text:'Bạn sẽ nhận thông báo khi'}),
+    el('div',{text:'• Được giao nhiệm vụ mới, hoặc được giao phối hợp.'}),
+    el('div',{text:'• Người khác ghi nhật ký có bạn tham gia cùng.'}),
+    el('div',{text:'• Quản trị ghi nhật ký thay hoặc đăng ký nghỉ cho bạn.'}),
+    el('div',{text:'• Người khác đăng ký hoạt động chuyên môn có bạn.'}),
+    el('div',{class:'hint',text:'Mỗi máy (điện thoại, máy tính) bật riêng. Chạm vào thông báo để mở đúng màn hình.'})]));
+  show(nodes,boot);
+}
+/* mở từ thông báo: ?mo=nv | lich | cm */
+function moTheoLienKet(){
+  var m=(location.search.match(/[?&]mo=([a-z]+)/)||[])[1];
+  if(!m)return;
+  try{history.replaceState(null,'',location.pathname)}catch(e){}
+  if(m==='nv')nvHome();else if(m==='lich')lichHome();else if(m==='cm')cmHome();
+}
+
 /* ===== ĐĂNG NHẬP GOOGLE ===== */
 var GIS_OK=false,GIS_MSG=null;
 /* trình duyệt nhúng trong Zalo, Messenger, Facebook, Instagram, TikTok… – Google không cho đăng nhập trong đó */
@@ -361,7 +451,10 @@ function dangXuat(){
 /* ===== TRẠNG THÁI MẠNG, SERVICE WORKER ===== */
 function capNhatMang(){var n=$('net');if(n)n.style.display=navigator.onLine?'none':''}
 window.addEventListener('online',capNhatMang);window.addEventListener('offline',capNhatMang);
-if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+  navigator.serviceWorker.addEventListener('message',function(e){var d=e.data||{};if(d.mo){if(d.mo==='nv')nvHome();else if(d.mo==='lich')lichHome();else if(d.mo==='cm')cmHome();else boot()}});
+}
 function el(tag,attrs,children){
   var e=document.createElement(tag);
   Object.keys(attrs||{}).forEach(function(k){
@@ -374,7 +467,7 @@ function el(tag,attrs,children){
   return e;
 }
 function show(nodes,back){
-  var a=$('app');a.innerHTML='';a.className='';hideTip();VIEW++;nodes.forEach(function(n){a.appendChild(n)});
+  var a=$('app');a.innerHTML='';a.className='';hideTip();VIEW++;nodes.forEach(function(n){if(n)a.appendChild(n)});
   var b=$('back');b.style.display=back?'inline':'none';b.onclick=back||null;window.scrollTo(0,0);
 }
 /* chú thích nổi cho biểu đồ (rê chuột hoặc chạm) */
@@ -399,7 +492,9 @@ function boot(){
 function route(r){
   if(!r||!r.ok){show([msgCard((r&&r.message)||'Có lỗi xảy ra.',true,[retry(boot)])]);return}
   ME=r;
-  if(r.state==='OK'){home();hangChoHien();if(!window.__taiSan){window.__taiSan=1;setTimeout(function(){dongBo(taiSan)},1500)}return}
+  if(r.state==='OK'){
+    home();if(!window.__lan1){window.__lan1=1;moTheoLienKet();setTimeout(lamMoiToken,2500)}
+    hangChoHien();if(!window.__taiSan){window.__taiSan=1;setTimeout(function(){dongBo(taiSan)},1500)}return}
   if(r.state==='CHUA_LIEN_KET')return lienKet(r);
   if(r.state==='CHO_DUYET')return show([msgCard('Yêu cầu của bạn (tên: '+r.ten+') đã được gửi. Vui lòng chờ quản trị duyệt rồi mở lại ứng dụng.',false,[el('button',{class:'s',text:'Kiểm tra lại',onclick:boot}),' ',el('button',{class:'s',text:'Đổi tài khoản',onclick:dangXuat})])]);
   if(r.state==='KHONG_HOAT_DONG')return show([msgCard('Tài khoản của bạn hiện không hoạt động. Liên hệ quản trị.',true)]);
@@ -444,7 +539,8 @@ function home(){
     return el('div',{class:'tile'+(t.off?' off':''),onclick:t.fn||function(){}},kids);
   }));
   show([el('div',{class:'card'},[el('p',{class:'hello',text:'Xin chào, '+u.ten}),el('div',{},chips),
-        el('p',{class:'mut'},[el('span',{text:'Email: '+u.email+' · '}),el('span',{class:'link',text:'Đăng xuất',onclick:dangXuat})])]),grid]);
+        el('p',{class:'mut'},[el('span',{text:'Email: '+u.email+' · '}),el('span',{class:'link',text:'🔔 Thông báo',onclick:tbView}),el('span',{text:' · '}),el('span',{class:'link',text:'Đăng xuất',onclick:dangXuat})])]),
+    moiBatThongBao(),grid]);
 }
 
 /* ---------- duyệt người dùng ---------- */
