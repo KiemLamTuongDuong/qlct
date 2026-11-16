@@ -202,6 +202,7 @@ function call(action,params,khongXepHang){
     if(r&&r.__offline)return r.__offline;
     if(r&&r.loai==='PHIEN_HET_HAN'){xoaPhien();dangNhapView(r.message);return new Promise(function(){})}
     if(r&&r._token){luuPhien(r._token,r._exp);delete r._token;delete r._exp}
+    if(r&&r.khoa&&typeof r.khoa==='string'&&ME&&ME.state==='OK'){ME.khoa=ME.khoa||{};ME.khoa[r.khoa]=ME.khoa[r.khoa]||{lyDo:''}}
     if(!CHI_DOC[action]&&r&&r.ok){cxoa('v',!GHI_XOA_HET[action]);if(GHI_XOA_HET[action])cxoa('c')}
     return r;
   });
@@ -342,7 +343,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='1.0';
+var BAN_APP='16/11/2026 (khóa chức năng)';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -633,6 +634,14 @@ function home(){
     {ic:'📈',t:'Báo cáo',s:'Toàn hạt, theo xã, theo cán bộ, của tôi',fn:function(){bcHome()}},
     {ic:'🎓',t:'Hoạt động chuyên môn',s:'Lịch chuyên môn cả hạt',fn:function(){cmHome()}}
   ];
+  /* phân hệ bị quản trị khóa: người dùng không vào được; quản trị vẫn vào được và thấy dấu 🔒 */
+  var KH=ME.khoa||{};
+  ['NK','NV','SLT','LICH','BC','CM'].forEach(function(m,i){
+    var k=KH[m];if(!k)return;var t=tiles[i];
+    if(c.quanTri){t.s='🔒 Đang khóa với người dùng';return}
+    t.off=true;t.badge=0;t.s='🔒 Tạm khóa';
+    t.fn=function(){alert('Chức năng "'+t.t+'" đang tạm khóa'+(k.lyDo?': '+k.lyDo:'')+'.\nLiên hệ quản trị nếu cần.')};
+  });
   if(c.quanTri)tiles.push({ic:'👥',t:'Duyệt người dùng',s:'Liên kết email mới',badge:ME.choDuyet,fn:duyetView});
   if(c.quanTri)tiles.push({ic:'⚙️',t:'Quản lý',s:'Quyền, vai trò, địa bàn, năm sử dụng',fn:qtView});
   if(c.quanTri)tiles.push({ic:'🧹',t:'Dọn dữ liệu',s:'Dồn dòng trống, đánh lại mã',fn:donView});
@@ -1019,6 +1028,11 @@ function nvHdGoiY(e){
   return by(function(h){return t.indexOf(h.name.toLowerCase())>=0})||'';
 }
 function nvBaoXong(e){
+  if(ME.khoa&&ME.khoa.NK&&!(ME.caps&&ME.caps.quanTri)){   // nhật ký đang khóa: chỉ báo hoàn thành
+    if(!confirm('Xác nhận báo hoàn thành?\nNgày hoàn thành sẽ tự ghi là hôm nay.'))return;
+    call('NV_XONG',{ma:e.ma}).then(function(x){if(x&&x.ok)nvRender('ds');else alert((x&&x.message)||'Không xử lý được.')}).catch(function(er){alert(errMsg(er))});
+    return;
+  }
   function mo(){
     var hd=nvHdGoiY(e),f={};
     if(e.loai==='Tham mưu văn bản')f.vb_ty=e.ten;
@@ -1733,6 +1747,31 @@ function qtRender(r){
   var yc=el('div',{class:'card'},[el('div',{class:'gt',text:'Năm sử dụng chung cho các bảng tháng'}),
     el('div',{class:'mut',text:'Đang dùng: năm '+(r.nam||'(chưa đặt)')+'. Thường chỉ đổi khi sang năm mới.'}),
     el('div',{class:'lnav',style:'margin-top:8px'},[namIn,nb]),nmsg]);
+  /* khóa chức năng với người dùng */
+  var kh=r.khoa||{},kmsg=el('div',{}),dongKh=[];
+  var khBox=el('div',{});
+  (r.dsCn||[]).forEach(function(c){
+    var x=el('input',{type:'checkbox'});x.style.width='auto';x.checked=!!kh[c.ma];
+    var ld=el('input',{type:'text',placeholder:'Lý do / thông báo cho người dùng (không bắt buộc)',value:(kh[c.ma]&&kh[c.ma].lyDo)||''});
+    var ldBox=el('div',{style:'margin:4px 0 0 30px'},[ld]);
+    var sync=function(){ldBox.style.display=x.checked?'':'none'};x.addEventListener('change',sync);sync();
+    dongKh.push({ma:c.ma,x:x,ld:ld});
+    khBox.appendChild(el('div',{style:'margin-top:10px'},[el('label',{style:'display:flex;gap:10px;align-items:center'},[x,el('span',{text:'🔒 Khóa "'+c.ten+'"'})]),ldBox,
+      kh[c.ma]?el('div',{class:'mut',style:'margin-left:30px;font-size:12px',text:'Khóa từ '+fmtVN(kh[c.ma].ngay)+(kh[c.ma].boi?' – '+kh[c.ma].boi:'')}):null]));
+  });
+  var kb=el('button',{class:'p',text:'Lưu khóa chức năng',onclick:function(){
+    var ds=dongKh.filter(function(d){return d.x.checked}),lyDo={};
+    ds.forEach(function(d){lyDo[d.ma]=d.ld.value.trim()});
+    kb.disabled=true;kmsg.innerHTML='';
+    call('QT_KHOA',{khoa:ds.map(function(d){return d.ma}),lyDo:lyDo}).then(function(x){kb.disabled=false;
+      if(x&&x.ok){r.khoa=x.khoa;ME.khoa=x.khoa;try{cset(ckey('v','ME',{}),ME)}catch(e){}
+        kmsg.appendChild(el('div',{class:'ok',text:ds.length?('Đã khóa: '+ds.map(function(d){return (r.dsCn.filter(function(c){return c.ma===d.ma})[0]||{}).ten}).join(', ')+'. Người dùng sẽ thấy khi mở lại ứng dụng.'):'Đã mở khóa tất cả chức năng.'}))}
+      else kmsg.appendChild(el('div',{class:'bad',text:(x&&x.message)||'Không lưu được.'}));
+    }).catch(function(e){kb.disabled=false;kmsg.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
+  }});
+  var khCard=r.dsCn?el('div',{class:'card'},[el('div',{class:'gt',text:'Khóa chức năng'}),
+    el('div',{class:'hint',text:'Chức năng bị khóa: người dùng không vào được, không ghi hay sửa dữ liệu được. Quản trị vẫn dùng bình thường. Khi khóa Nhật ký, người dùng vẫn đăng ký nghỉ ở Lịch công tác và vẫn báo hoàn thành nhiệm vụ (không kèm nhật ký).'}),
+    khBox,el('p',{},[kb]),kmsg]):null;
   var search=el('input',{type:'text',placeholder:'Tìm cán bộ…'}),list=el('div',{});
   function draw(){
     list.innerHTML='';var q=search.value.toLowerCase();
@@ -1748,7 +1787,7 @@ function qtRender(r){
     });
   }
   search.addEventListener('input',draw);draw();
-  show([yc,el('div',{class:'card'},[el('div',{class:'gt',text:'Cán bộ ('+r.nguoi.length+')'}),
+  show([khCard,yc,el('div',{class:'card'},[el('div',{class:'gt',text:'Cán bộ ('+r.nguoi.length+')'}),
     el('div',{class:'hint',text:'Muốn thêm cán bộ mới hoặc đổi họ tên: sửa trực tiếp sheet NGUOI_DUNG (thêm vào dòng trống cuối). Thay đổi quyền có hiệu lực khi người đó mở lại trang.'}),search]),list],boot);
 }
 function qtForm(r,u){
