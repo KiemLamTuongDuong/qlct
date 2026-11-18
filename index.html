@@ -127,6 +127,18 @@ table.hat .me td.nm{background:#e6f2ea;font-weight:bold}
 .net{background:#c0392b;color:#fff;font-size:11px;padding:3px 8px;border-radius:10px}
 .hc{background:#fff;color:var(--g);font-size:12px;font-weight:bold;padding:3px 8px;border-radius:10px;cursor:pointer}
 .hc.loi{background:#fbe3e0;color:#c0392b}
+.anhluoi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 8px}
+.anhluoi.lon{grid-template-columns:repeat(3,1fr);padding:0 12px}
+.anho{position:relative;aspect-ratio:1/1;background:#eef2ef;border-radius:8px;overflow:hidden;cursor:pointer}
+.anho img{width:100%;height:100%;object-fit:cover;display:block}
+.anhx{position:absolute;top:3px;right:3px;width:28px!important;height:28px;padding:0!important;border-radius:50%!important;background:rgba(0,0,0,.6)!important;color:#fff!important;border:0!important;font-size:14px;min-height:0!important}
+.anhnho{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);color:#fff;font-size:11px;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.anhov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:80;display:flex;justify-content:center;align-items:stretch}
+.anhnoi{background:#fff;width:100%;max-width:720px;overflow-y:auto}
+.anhdau{display:flex;gap:8px;align-items:center;padding:12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:1;flex-wrap:wrap}
+.anhdau .anhtd{flex:1;min-width:150px}
+.anhkhung{background:#111;display:flex;justify-content:center;align-items:center;min-height:240px}
+.anhto{max-width:100%;max-height:70vh;display:block}
 .xlov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:70;display:flex;align-items:flex-end;justify-content:center}
 .xlbox{background:#fff;border-radius:16px 16px 0 0;padding:18px 16px 22px;width:100%;max-width:520px}
 .xlbox button{width:100%}
@@ -216,7 +228,7 @@ function call(action,params,khongXepHang){
    Ghi/sửa/xóa thành công → xóa bản lưu của các màn hình xem. */
 var VIEW=0,LATEST={},PENDING=0;
 var GHI_XOA_HET={QT_SUA_NGUOI:1,QT_DOI_NAM:1,DUYET:1,GUI_YEU_CAU:1};
-var CHI_DOC={PUSH_DANGKY:1,PUSH_HUY:1,PUSH_THU:1,ME:1,NK_CAUHINH:1,NV_CAUHINH:1,SLT_CAUHINH:1,NK_DS:1,NV_DS:1,SLT_DS:1,SLT_LAY:1,LICH_THANG:1,BC_TINH:1,CM_LAY:1,QT_CAUHINH:1,DS_YEU_CAU:1};
+var CHI_DOC={ANH_DS:1,ANH_LAY:1,PUSH_DANGKY:1,PUSH_HUY:1,PUSH_THU:1,ME:1,NK_CAUHINH:1,NV_CAUHINH:1,SLT_CAUHINH:1,NK_DS:1,NV_DS:1,SLT_DS:1,SLT_LAY:1,LICH_THANG:1,BC_TINH:1,CM_LAY:1,QT_CAUHINH:1,DS_YEU_CAU:1};
 function ckey(kind,action,params){return 'qlct_c:'+((phien()||{}).email||'')+':'+kind+':'+action+':'+JSON.stringify(params||{})}
 function cget(k){try{var o=JSON.parse(localStorage.getItem(k)||'null');if(o&&Date.now()-o.t<30*864e5)return o}catch(e){}return null}
 function cset(k,d){
@@ -346,7 +358,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='1.2';
+var BAN_APP='18/11/2026 (ảnh hiện trường, ẩn/hiện)';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -819,6 +831,28 @@ function nkForm(body,edit,preset){
     ks.forEach(function(k){selBox.appendChild(el('span',{class:'chip',text:fmtVN(k)}))});
   }
   drawCal();drawSels();
+  /* ảnh hiện trường: ghi mới → chọn ảnh, gửi sau khi lưu; sửa → mở màn ảnh của nhật ký */
+  var ANH=edit?null:oChonAnh(),anhSua=el('div',{});
+  function anhSync(){
+    var h=hdSel.value===''?null:CFG.hoatDong[+hdSel.value],co=!!(h&&h.anh&&ME&&ME.anh);
+    if(ANH)ANH.box.style.display=co?'':'none';
+    anhSua.innerHTML='';
+    if(edit&&(co||(edit.soAnh&&ME&&ME.anh)))anhSua.appendChild(el('p',{},[el('button',{class:'s',text:edit.soAnh?'📷 Ảnh đã gắn ('+edit.soAnh+') – xem, thêm, xóa':'📷 Gắn ảnh cho nhật ký này',onclick:function(){
+      xemAnh(edit.ma,edit.hd+' · '+fmtVN(edit.ngay)+' · '+edit.buoi,function(n){edit.soAnh=n;anhSync()})}})]));
+  }
+  hdSel.addEventListener('change',anhSync);
+  function guiAnh(ma,offline,sau){
+    var fs=ANH?ANH.files():[];
+    if(!fs.length){sau&&sau();return}
+    if(offline||!ma){msg.appendChild(el('div',{class:'bad',text:'Ảnh chưa được gửi vì đang mất mạng. Khi có mạng, mở nhật ký này (Danh sách → Sửa, hoặc Lịch công tác) để gắn ảnh.'}));sau&&sau();return}
+    var tb=el('div',{class:'mut',text:'Đang gửi ảnh…'});msg.appendChild(tb);
+    taiAnhLen(ma,fs,function(i,n){tb.textContent='Đang gửi ảnh '+i+'/'+n+'…'}).then(function(k){
+      tb.textContent='';
+      msg.appendChild(el('div',{class:k.loi.length?'bad':'ok',text:'Đã gửi '+k.xong+'/'+fs.length+' ảnh.'+(k.loi.length?' Lỗi: '+k.loi.join('; '):'')}));
+      if(!k.loi.length)ANH.xoaHet();
+      sau&&sau();
+    });
+  }
   var LBL=edit?'Lưu thay đổi':(NV?'Báo hoàn thành':'Ghi nhật ký');
   var btn=el('button',{class:'p',text:LBL,onclick:save});
   var btnChi=NV?el('button',{class:'s',text:'Chỉ báo hoàn thành, không ghi nhật ký',onclick:function(){
@@ -833,6 +867,7 @@ function nkForm(body,edit,preset){
       r.nk?el('div',{class:'mut',text:'Mã nhật ký: '+r.nk.ma.join(', ')+' – đã hiện trên lịch công tác.'}):null,
       el('p',{},[el('button',{class:'s',text:'Về danh sách nhiệm vụ',onclick:function(){nvHome('ds')}})])]));
     if(r.nk)warnBox(msg,r.nk.canhBao);
+    if(r.nk&&r.nk.ma)guiAnh(r.nk.ma[0],false);
     window.scrollTo(0,document.body.scrollHeight);
   }
   function save(){
@@ -856,6 +891,7 @@ function nkForm(body,edit,preset){
         msg.appendChild(el('div',{class:'ok'},[el('b',{text:r.offline?('Đang mất mạng: đã lưu '+r.soDong+' dòng trên máy, sẽ tự gửi khi có mạng.'):('Đã ghi '+r.soDong+' dòng nhật ký.')}),el('div',{class:'mut',text:r.offline?'Xem ở biểu tượng ⇅ trên đầu trang.':'Mã: '+r.ma.join(', ')}),
           el('p',{},[el('button',{class:'s',text:'Ghi tiếp',onclick:function(){nkRender('ghi')}}),' ',el('button',{class:'s',text:'Xem danh sách',onclick:function(){nkRender('ds')}})])]));
         warnBox(msg,r.canhBao);
+        guiAnh(r.ma&&r.ma[0],r.offline);
         window.scrollTo(0,document.body.scrollHeight);
       }else if(r&&r.loai==='TRUNG'){
         var kids=[el('b',{text:r.message})];
@@ -875,8 +911,9 @@ function nkForm(body,edit,preset){
     el('label',{class:'l'},[CFG.coDiaDiem?'Nội dung':'Nội dung / địa điểm']),nd,
     CFG.coDiaDiem?el('label',{class:'l',text:'Địa điểm'}):null,CFG.coDiaDiem?ddXa:null,CFG.coDiaDiem?el('div',{style:'height:6px'}):null,CFG.coDiaDiem?ddTxt:null,
     CFG.coDiaDiem?el('div',{class:'hint',text:'Báo cáo theo địa bàn tính theo xã chọn ở đây (ví dụ đi tuyên truyền ở xã khác địa bàn mình). Không chọn xã thì tính theo địa bàn của người nhập.'}):null,
-    fieldBox
+    fieldBox,ANH?ANH.box:null,anhSua
   ]),el('div',{class:'card'},[btn,btnChi?el('div',{style:'height:8px'}):null,btnChi,msg])].forEach(function(n){if(n)body.appendChild(n)});
+  anhSync();
 }
 
 function nkList(body){
@@ -913,14 +950,17 @@ function nkList(body){
         if(e.nd)kids.push(el('div',{class:'mut',text:e.nd}));
         if(e.dd)kids.push(el('div',{class:'mut',text:'📍 '+e.dd}));
         kids.push(el('div',{class:'mut',text:e.ma}));
+        var hdA=CFG.hoatDong.filter(function(h){return h.name===e.hd})[0];
+        var na=nutAnh(e,!!(hdA&&hdA.anh)&&(e.sua||e.nhap===CFG.ten||e.cung.indexOf(CFG.ten)>=0)),bt=[];
         if(e.sua){
-          kids.push(el('div',{class:'btns'},[
-            el('button',{class:'s',text:'Sửa',onclick:function(){nkRender('ghi',e)}}),
+          bt.push(el('button',{class:'s',text:'Sửa',onclick:function(){nkRender('ghi',e)}}),
             el('button',{class:'d',text:'Xóa',onclick:function(){
-              if(!confirm('Xóa nhật ký '+e.ma+'?'))return;
+              if(!confirm('Xóa nhật ký '+e.ma+(e.soAnh?' (kèm '+e.soAnh+' ảnh)':'')+'?'))return;
               call('NK_XOA',{ma:e.ma}).then(function(x){if(x&&x.ok)load();else alert((x&&x.message)||'Không xóa được.')}).catch(function(er){alert(errMsg(er))});
-            }})]));
+            }}));
         }
+        if(na)bt.push(na);
+        if(bt.length)kids.push(el('div',{class:'btns'},bt));
         list.appendChild(el('div',{class:'item'},kids));
       });
     }).catch(function(e){list.innerHTML='';list.appendChild(msgCard('Lỗi: '+errMsg(e),true))});
@@ -1273,7 +1313,11 @@ function lichItem(x,r){
   if(x.dd)kids.push(el('div',{class:'mut',text:'📍 '+x.dd}));
   if(x.trung==='chan')kids.push(el('div',{class:'err',text:'Trùng buổi với việc không ghép được'}));
   else if(x.trung==='canh')kids.push(el('div',{class:'mut',text:x.nghi?'Trùng với nhật ký công việc':'Trùng với lịch nghỉ'}));
+  var cA=(r.chuThich||[]).filter(function(c){return c.code===x.code})[0];
+  var na=x.nghi?null:nutAnh(x,!!(cA&&cA.anh)&&(x.sua||(x.ds||[]).indexOf(r.ten)>=0));
+  if(na&&!x.sua)kids.push(el('div',{class:'btns'},[na]));
   if(x.sua)kids.push(el('div',{class:'btns'},[
+    na,
     el('button',{class:'s',text:'Sửa',onclick:function(){if(x.nghi)lichNghi('',x);else nkHome('ghi',x)}}),
     el('button',{class:'d',text:x.nghi?'Hủy đăng ký':'Xóa',onclick:function(){
       if(!confirm((x.nghi?'Hủy đăng ký ':'Xóa nhật ký ')+x.hd+' ngày '+fmtVN(x.ngay)+' ('+x.buoi+')'+(x.nhap!==r.ten?' của '+x.nhap:'')+'?'))return;
@@ -1629,6 +1673,128 @@ function bcRender(r){
       el('div',{class:'hint',text:'Mỗi lần mở hệ thống tính 1 lượt; mở lại trong vòng 30 phút không tính thêm. Số liệu bắt đầu từ ngày cài chức năng này.'})]));
   }
   show(nodes,boot);$('app').className='wide';
+}
+
+/* ===================== ẢNH HIỆN TRƯỜNG =====================
+   Ảnh nén ngay trên máy (cạnh dài 1600 px, JPEG ~300–500 KB) + ảnh nhỏ 360 px, gửi lên máy chủ lưu vào Google Drive của hạt.
+   Xem / tải về: mọi người. Xóa: người tải lên hoặc quản trị. */
+var ANH_NHO={};   // bộ nhớ ảnh nhỏ đã tải: id → dataURL
+function nenAnh(file){
+  function ve(src,w,h){
+    function lay(max,q){var k=Math.min(1,max/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+      var g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(src,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q).split(',')[1]}
+    return {data:lay(1600,0.82),nho:lay(360,0.7),ten:file.name||'anh.jpg'};
+  }
+  if(window.createImageBitmap)return createImageBitmap(file,{imageOrientation:'from-image'}).then(function(b){var x=ve(b,b.width,b.height);try{b.close()}catch(e){}return x}).catch(function(){return quaImg()});
+  return quaImg();
+  function quaImg(){return new Promise(function(ok,loi){var u=URL.createObjectURL(file),im=new Image();
+    im.onload=function(){try{ok(ve(im,im.naturalWidth,im.naturalHeight))}catch(e){loi(e)}URL.revokeObjectURL(u)};
+    im.onerror=function(){URL.revokeObjectURL(u);loi(new Error('Không đọc được ảnh '+(file.name||'')))};im.src=u})}
+}
+/* gửi lần lượt các ảnh đang chờ lên nhật ký ma; bao(i,n) để báo tiến độ */
+function taiAnhLen(ma,files,bao){
+  var i=0,loi=[],xong=0;
+  function tiep(){
+    if(i>=files.length)return Promise.resolve({xong:xong,loi:loi});
+    var f=files[i++];bao&&bao(i,files.length);
+    return nenAnh(f).then(function(a){return call('ANH_TAI',{ma:ma,ten:a.ten,data:a.data,nho:a.nho})})
+      .then(function(r){if(r&&r.ok)xong++;else loi.push((f.name||'ảnh')+': '+((r&&r.message)||'lỗi'))})
+      .catch(function(e){loi.push((f.name||'ảnh')+': '+errMsg(e))}).then(tiep);
+  }
+  return tiep();
+}
+/* ô chọn ảnh dùng trong form ghi nhật ký mới (ảnh được gửi sau khi lưu nhật ký) */
+function oChonAnh(){
+  var ds=[],luoi=el('div',{class:'anhluoi'}),inp=el('input',{type:'file',accept:'image/*',multiple:'multiple'});
+  inp.style.display='none';
+  inp.addEventListener('change',function(){
+    [].slice.call(inp.files||[]).forEach(function(f){if(ds.length<10)ds.push({f:f,u:URL.createObjectURL(f)})});
+    inp.value='';ve();
+  });
+  function ve(){
+    luoi.innerHTML='';
+    ds.forEach(function(x,i){luoi.appendChild(el('div',{class:'anho'},[el('img',{src:x.u,alt:''}),
+      el('button',{class:'anhx',text:'✕',title:'Bỏ ảnh này',onclick:function(){URL.revokeObjectURL(x.u);ds.splice(i,1);ve()}})]))});
+    nut.textContent=ds.length?'📷 Thêm ảnh ('+ds.length+'/10)':'📷 Chụp / chọn ảnh';
+    nut.style.display=ds.length>=10?'none':'';
+  }
+  var nut=el('button',{class:'s',text:'📷 Chụp / chọn ảnh',onclick:function(){inp.click()}});
+  var box=el('div',{},[el('label',{class:'l',text:'Ảnh hiện trường (không bắt buộc, tối đa 10 ảnh)'}),luoi,nut,inp,
+    el('div',{class:'hint',text:'Ảnh được nén nhỏ rồi lưu vào Google Drive của hạt sau khi lưu nhật ký. Cần có mạng để gửi ảnh. Mọi người xem và tải được; chỉ người tải lên hoặc quản trị mới xóa được.'})]);
+  return {box:box,files:function(){return ds.map(function(x){return x.f})},xoaHet:function(){ds.forEach(function(x){URL.revokeObjectURL(x.u)});ds=[];ve()}};
+}
+/* nút "📷 Ảnh (n)" ở danh sách nhật ký / lịch */
+function nutAnh(x,choThem){
+  if(!(ME&&ME.anh))return null;   // quản trị chưa bật chức năng ảnh
+  if(!x.soAnh&&!choThem)return null;
+  return el('button',{class:'s',text:x.soAnh?'📷 Ảnh ('+x.soAnh+')':'📷 Gắn ảnh',onclick:function(){xemAnh(x.ma,x.hd+' · '+fmtVN(x.ngay)+' · '+x.buoi,function(n){x.soAnh=n})}});
+}
+/* màn xem ảnh của một nhật ký: lưới ảnh nhỏ → chạm để xem lớn, tải về, xóa; thêm ảnh nếu có quyền */
+function xemAnh(ma,tieuDe,khiDoi){
+  var ov=el('div',{class:'anhov'}),noi=el('div',{class:'anhnoi'}),cu=window.CUR_BACK;
+  ov.appendChild(noi);document.body.appendChild(ov);document.body.style.overflow='hidden';
+  function dong(){ov.remove();document.body.style.overflow='';if(typeof CUR_BACK!=='undefined'){CUR_BACK=cu}}
+  if(typeof CUR_BACK!=='undefined'){CUR_BACK=function(){if(lon)moLuoi();else dong()};if(typeof datChan==='function')try{datChan()}catch(e){}}
+  var DS=[],lon=null;
+  function dau(ten,nuts){return el('div',{class:'anhdau'},[el('div',{class:'anhtd'},[el('b',{text:ten}),el('div',{class:'mut',text:tieuDe})])].concat(nuts))}
+  function nap(){
+    noi.innerHTML='';noi.appendChild(dau('Ảnh hiện trường',[el('button',{class:'s',text:'Đóng',onclick:dong})]));
+    noi.appendChild(el('div',{class:'mut',style:'padding:16px',text:'Đang tải…'}));
+    call('ANH_DS',{ma:ma}).then(function(r){if(!r||!r.ok)throw new Error((r&&r.message)||'Không tải được danh sách ảnh.');DS=r.ds;khiDoi&&khiDoi(DS.length);moLuoi(r)})
+      .catch(function(e){noi.lastChild.textContent='Lỗi: '+errMsg(e)});
+  }
+  var R=null;
+  function moLuoi(r){
+    if(r)R=r;lon=null;noi.innerHTML='';
+    var them=null,msg=el('div',{});
+    if(R.them){
+      var inp=el('input',{type:'file',accept:'image/*',multiple:'multiple'});inp.style.display='none';
+      inp.addEventListener('change',function(){
+        var fs=[].slice.call(inp.files||[]).slice(0,R.toiDa-DS.length);inp.value='';if(!fs.length)return;
+        them.disabled=true;
+        taiAnhLen(ma,fs,function(i,n){them.textContent='Đang gửi ảnh '+i+'/'+n+'…'}).then(function(k){
+          them.disabled=false;
+          if(k.loi.length)alert('Có ảnh chưa gửi được:\n'+k.loi.join('\n'));
+          nap();
+        });
+      });
+      them=el('button',{class:'p',text:'📷 Thêm ảnh',onclick:function(){if(!navigator.onLine){alert('Cần có mạng để gửi ảnh.');return}inp.click()}});
+      noi.appendChild(dau('Ảnh hiện trường ('+DS.length+')',[them,inp,el('button',{class:'s',text:'Đóng',onclick:dong})]));
+    }else noi.appendChild(dau('Ảnh hiện trường ('+DS.length+')',[el('button',{class:'s',text:'Đóng',onclick:dong})]));
+    if(!DS.length){noi.appendChild(el('div',{class:'mut',style:'padding:16px',text:R.them?'Chưa có ảnh. Bấm "📷 Thêm ảnh" để chụp hoặc chọn ảnh.':'Chưa có ảnh nào.'}));return}
+    var luoi=el('div',{class:'anhluoi lon'});
+    DS.forEach(function(a,i){
+      var im=el('img',{alt:''}),o=el('div',{class:'anho',onclick:function(){moLon(i)}},[im,el('div',{class:'anhnho',text:a.nguoi})]);
+      if(ANH_NHO[a.id])im.src=ANH_NHO[a.id];
+      else call('ANH_LAY',{id:a.id}).then(function(x){if(x&&x.ok){ANH_NHO[a.id]='data:image/jpeg;base64,'+x.data;im.src=ANH_NHO[a.id]}}).catch(function(){});
+      luoi.appendChild(o);
+    });
+    noi.appendChild(luoi);noi.appendChild(msg);
+  }
+  function moLon(i){
+    var a=DS[i];lon=a;noi.innerHTML='';
+    var im=el('img',{class:'anhto',alt:'',src:ANH_NHO[a.id]||''}),tt=el('div',{class:'mut',text:'Đang tải ảnh gốc…'}),goc=null;
+    var tai=el('button',{class:'s',text:'📥 Tải về',onclick:function(){
+      if(!goc){alert('Ảnh gốc chưa tải xong.');return}
+      var b=new Blob([Uint8Array.from(atob(goc),function(c){return c.charCodeAt(0)})],{type:'image/jpeg'});
+      var ten=(a.ten&&/\.jpe?g$/i.test(a.ten)?a.ten:(a.id+'.jpg'));
+      if(typeof taiVeFile==='function')taiVeFile(b,ten);
+      else{var u=URL.createObjectURL(b),l=el('a',{href:u,download:ten});document.body.appendChild(l);l.click();setTimeout(function(){URL.revokeObjectURL(u);l.remove()},5000)}
+    }});
+    var nuts=[el('button',{class:'s',text:'‹',onclick:function(){moLon((i-1+DS.length)%DS.length)}}),el('button',{class:'s',text:'›',onclick:function(){moLon((i+1)%DS.length)}}),tai];
+    if(a.xoa)nuts.push(el('button',{class:'d',text:'🗑 Xóa',onclick:function(){
+      if(!confirm('Xóa ảnh này? Ảnh sẽ bị xóa khỏi Drive và không khôi phục được trên ứng dụng.'))return;
+      call('ANH_XOA',{id:a.id}).then(function(r){if(r&&r.ok){delete ANH_NHO[a.id];nap()}else alert((r&&r.message)||'Không xóa được.')}).catch(function(e){alert(errMsg(e))});
+    }}));
+    nuts.push(el('button',{class:'s',text:'Đóng',onclick:function(){moLuoi()}}));
+    noi.appendChild(dau('Ảnh '+(i+1)+'/'+DS.length,[]));
+    noi.appendChild(el('div',{class:'anhkhung'},[im]));
+    noi.appendChild(el('div',{class:'mut',style:'padding:6px 12px',text:'Người tải lên: '+a.nguoi+(a.tg?' · '+a.tg.split(' ')[1]+' '+fmtVN(a.tg.split(' ')[0]):'')+(a.kb?' · '+a.kb+' KB':'')}));
+    noi.appendChild(tt);noi.appendChild(el('div',{class:'btns',style:'padding:8px 12px 16px'},nuts));
+    call('ANH_LAY',{id:a.id,goc:1}).then(function(x){if(lon!==a)return;if(x&&x.ok){goc=x.data;im.src='data:image/jpeg;base64,'+x.data;tt.textContent=''}else tt.textContent=(x&&x.message)||'Không tải được ảnh.'})
+      .catch(function(e){tt.textContent='Lỗi: '+errMsg(e)});
+  }
+  nap();
 }
 
 /* ===================== XUẤT EXCEL (.xlsx) =====================
@@ -2129,6 +2295,23 @@ function qtRender(r){
       el('div',{class:'hint',text:'Mặc định ẩn. Đánh dấu chức năng nào thì nút "📥 Xuất Excel" mới hiện ở chức năng đó (với mọi tài khoản, kể cả quản trị). Người dùng thấy thay đổi khi mở lại ứng dụng.'}),
       exBox,el('p',{},[exBtn]),exMsg]);
   }
+  /* bật / tắt chức năng ảnh hiện trường */
+  var anhCard=null;
+  if(r.anhBat!==undefined){
+    var ax=el('input',{type:'checkbox'});ax.style.width='auto';ax.checked=!!r.anhBat;
+    var aMsg=el('div',{}),aBtn=el('button',{class:'p',text:'Lưu',onclick:function(){
+      aBtn.disabled=true;aMsg.innerHTML='';
+      call('QT_ANH',{bat:ax.checked}).then(function(x){aBtn.disabled=false;
+        if(x&&x.ok){r.anhBat=x.anh;ME.anh=x.anh;try{cset(ckey('v','ME',{}),ME)}catch(e){}
+          aMsg.appendChild(el('div',{class:'ok',text:x.anh?'Đã bật chức năng ảnh hiện trường.':'Đã ẩn chức năng ảnh hiện trường (ảnh đã lưu vẫn còn trên Drive).'}))}
+        else aMsg.appendChild(el('div',{class:'bad',text:(x&&x.message)||'Không lưu được.'}));
+      }).catch(function(e){aBtn.disabled=false;aMsg.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
+    }});
+    anhCard=el('div',{class:'card'},[el('div',{class:'gt',text:'Ảnh hiện trường'}),
+      el('div',{class:'hint',text:'Mặc định ẩn. Khi bật, nhật ký các hoạt động có "Gắn ảnh = Có" trong DANH_MUC sẽ có nút chụp/chọn ảnh và nút 📷 xem ảnh. Khi ẩn, mọi tài khoản (kể cả quản trị) không thấy chức năng này; ảnh đã lưu vẫn giữ nguyên trên Drive và hiện lại khi bật.'}),
+      el('label',{style:'display:flex;gap:10px;align-items:center;margin-top:10px'},[ax,el('span',{text:'📷 Hiện chức năng gắn / xem ảnh hiện trường'})]),
+      el('p',{},[aBtn]),aMsg]);
+  }
   var search=el('input',{type:'text',placeholder:'Tìm cán bộ…'}),list=el('div',{});
   function draw(){
     list.innerHTML='';var q=search.value.toLowerCase();
@@ -2144,7 +2327,7 @@ function qtRender(r){
     });
   }
   search.addEventListener('input',draw);draw();
-  show([khCard,exCard,yc,el('div',{class:'card'},[el('div',{class:'gt',text:'Cán bộ ('+r.nguoi.length+')'}),
+  show([khCard,exCard,anhCard,yc,el('div',{class:'card'},[el('div',{class:'gt',text:'Cán bộ ('+r.nguoi.length+')'}),
     el('div',{class:'hint',text:'Muốn thêm cán bộ mới hoặc đổi họ tên: sửa trực tiếp sheet NGUOI_DUNG (thêm vào dòng trống cuối). Thay đổi quyền có hiệu lực khi người đó mở lại trang.'}),search]),list],boot);
 }
 function qtForm(r,u){
