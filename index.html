@@ -364,7 +364,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='1.2';
+var BAN_APP='1.3';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -779,7 +779,22 @@ var DOCX={
       thayChu(p,ctx);
     }
     function bang(t,ctx){
-      var bo=[];
+      var bo=[],hangs=kids(t).filter(function(x){return x.localName==='tr'}),boQua=[];
+      /* nhóm hàng lặp: {{#x}} ở một hàng (không phải đoạn riêng), {{/x}} ở hàng sau */
+      for(var hi=0;hi<hangs.length;hi++){
+        var s0=txt(hangs[hi]),m0=s0.match(/\{\{#([.\w]+)\}\}/);
+        if(!m0||s0.indexOf('{{/'+m0[1]+'}}')>=0)continue;
+        var pp0=hangs[hi].getElementsByTagNameNS(W,'p'),kh0=false;for(var q0=0;q0<pp0.length;q0++)if(txt(pp0[q0]).trim()==='{{#'+m0[1]+'}}')kh0=true;
+        if(kh0)continue;
+        var hj=-1;for(var k2=hi+1;k2<hangs.length;k2++)if(txt(hangs[k2]).indexOf('{{/'+m0[1]+'}}')>=0){hj=k2;break}
+        if(hj<0)continue;
+        var nhom=hangs.slice(hi,hj+1),moc0=hangs[hj].nextSibling,cha0=hangs[hi].parentNode;
+        lap(val(ctx,m0[1])).forEach(function(it,i){
+          var cx=it===null?ctx:sub(ctx,it,i);
+          nhom.forEach(function(h){var c=h.cloneNode(true);cha0.insertBefore(c,moc0);kids(c).forEach(function(tc){if(tc.localName==='tc')day(kids(tc),cx)})});
+        });
+        nhom.forEach(function(h){boQua.push(h);rm(h)});hi=hj;
+      }
       kids(t).forEach(function(tr){
         if(tr.localName!=='tr')return;
         var s=txt(tr),m=s.match(/\{\{#([.\w]+)\}\}/),khoi=false;
@@ -879,9 +894,15 @@ function bbDuLieuKT(f){
   var n=bbNgay(f.ngay),g=bbGio(f.gio),kt=bbNgay(f.ngayKT||f.ngay),gk=bbGio(f.gioKT);
   var tp=(f.tp||[]).filter(function(x){return x&&String(x.hoTen||'').trim()});
   var lapGoc=(f.tp||[])[Number(f.lap)||0],lap=tp.indexOf(lapGoc)>=0?lapGoc:(tp[0]||{hoTen:''});
-  var khac=tp.filter(function(x){return x!==lap}).map(function(x){return x.hoTen.trim()}),cap=[];
-  for(var i=0;i<khac.length;i+=2)cap.push({a:khac[i],b:khac[i+1]||''});
-  var dt=f.dt||{},ck=f.ck||{},ckTen=String(ck.ten||'').trim();
+  var dt=f.dt||{},ck=f.ck||{},ckTen=String(ck.ten||'').trim(),HDU=hd.toUpperCase();
+  /* khu ký 2 cột: đối tượng, người chứng kiến (nếu có), đại diện các đơn vị; người lập luôn ở ô TRÁI hàng cuối */
+  var o=[];
+  if(String(dt.ten||'').trim())o.push({td:'CÁ NHÂN/TỔ CHỨC ĐƯỢC '+HDU,ten:String(dt.ten).trim()});
+  if(ckTen)o.push({td:'NGƯỜI CHỨNG KIẾN',ten:ckTen});
+  tp.filter(function(x){return x!==lap}).forEach(function(x){var dv=String(x.donVi||'').trim();o.push({td:dv?'ĐẠI DIỆN '+dv.toLocaleUpperCase('vi'):'THÀNH PHẦN THAM GIA',ten:x.hoTen.trim()})});
+  var oLap={td:'NGƯỜI LẬP BIÊN BẢN',ten:lap.hoTen||''},cuoi=o.length?o.pop():{td:'',ten:''},kyHang=[];
+  for(var i=0;i<o.length;i+=2)kyHang.push({a_td:o[i].td,a_ten:o[i].ten,b_td:o[i+1]?o[i+1].td:'',b_ten:o[i+1]?o[i+1].ten:''});
+  kyHang.push({a_td:oLap.td,a_ten:oLap.ten,b_td:cuoi.td,b_ten:cuoi.ten});
   return {
     coQuan1:bbV(f.coQuan1),coQuan2:bbV(f.coQuan2),TIEU_DE:tieuDe||'KIỂM TRA',trichYeu:String(f.trichYeu||'').trim(),
     ngayD:n.d,ngayM:n.m,ngayY:n.y,gio:g.h,phut:g.p,diaDiem:bbV(f.diaDiem),
@@ -896,7 +917,7 @@ function bbDuLieuKT(f){
     noiDung:bbChuoiDong(f.noiDung),ketLuan:bbChuoiDong(f.ketLuan),
     gioKT:gk.h,phutKT:gk.p,ktD:kt.d,ktM:kt.m,ktY:kt.y,
     soBan:bbV(f.soBan,'03'),giaoBan:DOCX.co(dt.ten)?', giao cho người/tổ chức được '+hd+' một bản':'',
-    nguoiLap:lap.hoTen||'',tpCap:cap,coTpKhac:cap.length?1:''
+    nguoiLap:lap.hoTen||'',kyHang:kyHang
   };
 }
 function bbNguoiDong(x,i){
