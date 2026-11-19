@@ -201,8 +201,9 @@ BD.doiTCVN3=doiTCVN3;
 function ngayTu(s){if(!s)return null;var m=String(s).match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);if(m)return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
   m=String(s).match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);return m?m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2):null}
 /* đọc file → [{ten, loai:'duong'|'vung'|'diem', ds (tọa độ VN-2000 tuyệt đối), ngay:[min,max]}] */
-function docFile(file){
+function docFile(file,dbf){
   var ten=file.name.toLowerCase();
+  if(/\.shp$/.test(ten))return Promise.all([file.arrayBuffer(),dbf?dbf.arrayBuffer():null]).then(function(b){return docShp(b[0],b[1],file.name)});
   if(/\.kmz$/.test(ten))return file.arrayBuffer().then(function(b){return ZIPR.doc2(b)}).then(function(fs){
     var k=fs.filter(function(f){return /\.kml$/i.test(f.n)})[0];if(!k)throw new Error('Trong file KMZ không có KML.');return docKml(ZIPR.txt(k))});
   return file.text().then(function(t){
@@ -211,7 +212,7 @@ function docFile(file){
     if(/\.(geo)?json$/.test(ten))return docGeoJson(t);
     if(/\.mif$/.test(ten))return docMif(t);
     if(/<gpx/i.test(t))return docGpx(t);if(/<kml/i.test(t))return docKml(t);if(/^\s*\{/.test(t))return docGeoJson(t);
-    throw new Error('Chưa đọc được loại file này. Dùng GPX, KML, KMZ, GeoJSON hoặc MIF.');
+    throw new Error('Chưa đọc được loại file này. Dùng GPX, KML, KMZ, GeoJSON, SHP (chọn cùng file .dbf) hoặc MIF.');
   });
 }
 function xmlDoc(t){var d=new DOMParser().parseFromString(t,'application/xml');if(d.getElementsByTagName('parsererror').length)throw new Error('File hỏng (XML không hợp lệ).');return d}
@@ -275,6 +276,35 @@ function docGeoJson(t){
       else if(g.type==='MultiPoint')out.push({ten:ten,loai:'diem',ds:c.map(d),ngay:nn});
     });
   });
+  return out;
+}
+/* Shapefile: .shp (hình) + .dbf (thuộc tính, không bắt buộc). Tọa độ độ (WGS84) hoặc mét VN-2000 – tự nhận theo độ lớn */
+function docDbf(buf){
+  if(!buf)return [];var v=new DataView(buf),u=new Uint8Array(buf),n=v.getUint32(4,true),hl=v.getUint16(8,true),rl=v.getUint16(10,true),f=[],p=32,o=1;
+  while(p+32<=hl&&u[p]!==0x0D){var nm='';for(var i=0;i<11&&u[p+i];i++)nm+=String.fromCharCode(u[p+i]);f.push({n:nm,t:String.fromCharCode(u[p+11]),l:u[p+16],o:o});o+=u[p+16];p+=32}
+  var utf=new TextDecoder('utf-8',{fatal:true}),lat=new TextDecoder('latin1'),out=[];
+  for(var r=0;r<n;r++){var b=hl+r*rl,x={};if(b+rl>u.length)break;
+    f.forEach(function(fd){var a=u.subarray(b+fd.o,b+fd.o+fd.l),s;try{s=utf.decode(a)}catch(e){s=lat.decode(a)}x[fd.n]=doiTCVN3(s.replace(/\0/g,''))});out.push(x)}
+  return out;
+}
+function docShp(buf,dbfBuf,tenFile){
+  var v=new DataView(buf),ds=docDbf(dbfBuf),out=[],p=100,i=0,laMet=null;
+  var d=function(x,y){if(laMet===null)laMet=Math.abs(x)>360||Math.abs(y)>360;return laMet?[Math.round(x*10)/10,Math.round(y*10)/10]:vnTuLL(y,x)};
+  var tenTu=function(a){if(!a)return '';var ks=Object.keys(a),k=ks.filter(function(k){return /^(a4TenDuong|TenDuong|ten|name|TEN|NAME|c1TenDoiTuong)$/i.test(k)&&a[k]})[0];
+    return k?a[k]:''};
+  while(p+12<=buf.byteLength){
+    var len=v.getInt32(p+4,false)*2,c=p+8,t=v.getInt32(c,true),a=ds[i]||null,ten=tenTu(a)||((tenFile||'Đối tượng').replace(/\.shp$/i,'')+' '+(i+1));
+    var ng=a?khoangNgay([ngayTu(a.a2KhoiTao||a.a3CapNhat||a.c3ThoiGian||a.ngay||a.NGAY||'')]):null;
+    if(t===1||t===11||t===21)out.push({ten:ten,loai:'diem',ds:[d(v.getFloat64(c+4,true),v.getFloat64(c+12,true))],ngay:ng});
+    else if(t===3||t===13||t===23||t===5||t===15||t===25){
+      var np=v.getInt32(c+36,true),nn=v.getInt32(c+40,true),pp=c+44,pt=pp+4*np,parts=[];
+      for(var k=0;k<np;k++){var s0=v.getInt32(pp+4*k,true),s1=k+1<np?v.getInt32(pp+4*k+4,true):nn,arr=[];
+        for(var j=s0;j<s1;j++){var q=d(v.getFloat64(pt+16*j,true),v.getFloat64(pt+16*j+8,true));arr.push(q[0],q[1])}
+        if(arr.length>=4)parts.push(arr)}
+      if(parts.length)out.push(t%10===3?{ten:ten,loai:'duong',ds:parts,ngay:ng}:{ten:ten,loai:'vung',ds:[parts],ngay:ng});
+    }
+    p=c+len;i++;
+  }
   return out;
 }
 /* MapInfo MIF: CoordSys Earth Projection 1 = kinh/vĩ độ; các hệ chiếu khác coi là mét VN-2000 */
@@ -379,7 +409,7 @@ function manXem(){
     moGoi(S.goi).catch(function(e){alert(errMsg(e));GOI=null}).then(manXem)}},[el('option',{value:'',text:DS_GOI&&DS_GOI.length?'— Không dùng bản đồ nền —':'(chưa có bản đồ nền)'})]);
   (DS_GOI||[]).forEach(function(g){sel.appendChild(el('option',{value:g.ma,text:g.ten}))});sel.value=GOI?GOI.g.ma:'';
   var cv=el('canvas',{class:'bdcv'}),info=el('div',{class:'bdinfo'}),cham=null;
-  var oFile=el('input',{type:'file',accept:'.gpx,.kml,.kmz,.json,.geojson,.mif,application/gpx+xml,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz',multiple:'multiple',style:'display:none',
+  var oFile=el('input',{type:'file',multiple:'multiple',style:'display:none',
     onchange:function(){var fs=[].slice.call(oFile.files);oFile.value='';nhapFile(fs,function(){ve();veDsLop();vuaKhung()})}});
   var bar=el('div',{class:'bdbar'},[sel,
     el('button',{class:'s',text:'📍',title:'Về vị trí của tôi',onclick:function(){if(GPS.e){V.cx=GPS.e;V.cy=GPS.n;if(V.s<0.5)V.s=1;ve();luuXem()}else thongBao(GPS.loi||'Đang chờ GPS…',3000)}}),
@@ -414,7 +444,7 @@ function manXem(){
   function veDsLop(){
     dsLop.innerHTML='';
     dsLop.appendChild(el('div',{class:'gt',text:'Lớp đã nhập ('+S.lop.length+')'}));
-    if(!S.lop.length)dsLop.appendChild(el('div',{class:'hint',text:'Bấm "➕ Nhập file" để đưa đường tuần tra (GPX, KML…) hoặc vùng vi phạm vào bản đồ. Ghi track bằng ứng dụng GPS khác (vTools, OsmAnd, Locus…), xuất ra GPX hoặc KML.'}));
+    if(!S.lop.length)dsLop.appendChild(el('div',{class:'hint',text:'Bấm "➕ Nhập file" để đưa đường tuần tra hoặc vùng vi phạm vào bản đồ: GPX, KML, KMZ, GeoJSON, SHP (chọn cả file .shp và .dbf cùng tên), MIF. Ghi track bằng ứng dụng GPS khác (vTools…) rồi xuất ra một trong các dạng này.'}));
     S.lop.forEach(function(L,i){
       var ck=el('input',{type:'checkbox'});ck.checked=L.hien!==false;ck.onchange=function(){L.hien=ck.checked;luu();ve()};
       dsLop.appendChild(el('div',{class:'ln'},[ck,el('span',{class:'sw',style:L.loai==='vung'?'background:'+hex2rgba(L.mau,0.35)+';border-color:'+L.mau:L.loai==='duong'?'background:'+L.mau+';height:5px':'background:'+L.mau+';border-radius:50%;width:14px;height:14px'}),
@@ -453,7 +483,12 @@ function veThuocManHinh(ctx,cv,s,dpr){var mpp=1/s,goal=110*dpr*mpp,b=[5,10,20,50
 /* hộp chọn đối tượng sau khi đọc file */
 function nhapFile(fs,xong){
   if(!fs.length)return;
-  Promise.all(fs.map(function(f){return docFile(f).then(function(a){a.forEach(function(x){x.file=f.name});return a})})).then(function(kq){
+  var goc=function(f){return f.name.replace(/\.[^.]+$/,'').toLowerCase()},dbf={};
+  fs.forEach(function(f){if(/\.dbf$/i.test(f.name))dbf[goc(f)]=f});
+  var phu=fs.filter(function(f){return /\.(dbf|shx|prj|cpg|qix|sbn|sbx)$/i.test(f.name)});
+  fs=fs.filter(function(f){return phu.indexOf(f)<0});
+  if(!fs.length){alert('Hãy chọn file .shp (có thể chọn cùng lúc file .dbf cùng tên để lấy tên đường).');return}
+  Promise.all(fs.map(function(f){return docFile(f,dbf[goc(f)]).then(function(a){a.forEach(function(x){x.file=f.name});return a})})).then(function(kq){
     var ds=[].concat.apply([],kq);
     if(!ds.length){alert('Không tìm thấy đường, vùng hay điểm nào trong file.');return}
     if(GOI){var b=GOI.g.bbox,ngoai=ds.filter(function(it){var h=hopLop([{loai:it.loai,ds:it.ds}]);return h&&(h[2]<b[0]-20000||h[0]>b[2]+20000||h[3]<b[1]-20000||h[1]>b[3]+20000)}).length;
@@ -581,9 +616,12 @@ function tkMau(vp){var l=loTai(vp.cx,vp.cy);return l&&l.tt[0]?l.tt[0]:((GOI.tk[0
 /* các mục chú giải theo loại bản đồ */
 function mucChuGiai(vp){
   var bt=S.bt,a=[],da={};
-  if(GOI&&bt.cgTk&&bt.nhanTk)a.push({ve:function(ctx,x,y,w,h,k){vongTron(ctx,x+w/2,y+h/2,4.4*k,'#1428d0',0.3*k,tkMau(vp),3.6*k)},t:'Số hiệu tiểu khu',mau:'#1428d0'});
-  if(GOI&&bt.cgTk&&bt.nhanKh)a.push({ve:function(ctx,x,y,w,h,k){vongTron(ctx,x+w/2,y+h/2,2.6*k,'#000',0.2*k,'8',2.8*k)},t:'Số hiệu khoảnh'});
-  if(GOI&&bt.cgLo)a.push({ve:function(ctx,x,y,w,h,k){var cx=x+w/2,cy=y+h/2;ctx.fillStyle='#000';ctx.font=2.6*k+'px '+FONT;ctx.textAlign='center';
+  /* khung không có lô nào của bản đồ nền → bỏ các mục tiểu khu, khoảnh, lô */
+  var coNen=GOI&&GOI.lo.some(function(l){var b=l.bb,ox=GOI.ox,oy=GOI.oy,hw=vp.w/2/vp.s,hh=vp.h/2/vp.s;
+    return b[2]+ox>=vp.cx-hw&&b[0]+ox<=vp.cx+hw&&b[3]+oy>=vp.cy-hh&&b[1]+oy<=vp.cy+hh});
+  if(coNen&&bt.cgTk&&bt.nhanTk)a.push({ve:function(ctx,x,y,w,h,k){vongTron(ctx,x+w/2,y+h/2,4.4*k,'#1428d0',0.3*k,tkMau(vp),3.6*k)},t:'Số hiệu tiểu khu',mau:'#1428d0'});
+  if(coNen&&bt.cgTk&&bt.nhanKh)a.push({ve:function(ctx,x,y,w,h,k){vongTron(ctx,x+w/2,y+h/2,2.6*k,'#000',0.2*k,'8',2.8*k)},t:'Số hiệu khoảnh'});
+  if(coNen&&bt.cgLo)a.push({ve:function(ctx,x,y,w,h,k){var cx=x+w/2,cy=y+h/2;ctx.fillStyle='#000';ctx.font=2.6*k+'px '+FONT;ctx.textAlign='center';
       ctx.textBaseline='bottom';ctx.fillText('2 - TXP',cx,cy-0.3*k);ctx.textBaseline='top';ctx.fillText('2,35 ha',cx,cy+0.3*k);ctx.lineWidth=0.15*k;ctx.strokeStyle='#000';ctx.beginPath();ctx.moveTo(cx-5.5*k,cy);ctx.lineTo(cx+5.5*k,cy);ctx.stroke()},
     t:'Lô rừng - Trạng thái',t2:'Diện tích lô',gach:1});
   S.lop.forEach(function(L){
@@ -593,7 +631,7 @@ function mucChuGiai(vp){
       else if(L.loai==='vung'){ctx.beginPath();ctx.rect(x+1.5*k,y+h/2-3.2*k,w-3*k,6.4*k);toVung(ctx,L,k)}
       else veDiem(ctx,L,x+w/2,y+h/2,k)}});
   });
-  if(GOI&&bt.cgMau){
+  if(coNen&&bt.cgMau){
     var co={};GOI.lo.forEach(function(l){var b=l.bb,ox=GOI.ox,oy=GOI.oy,s=vp.s;
       var x1=vp.x+vp.w/2+(b[0]+ox-vp.cx)*s,x2=vp.x+vp.w/2+(b[2]+ox-vp.cx)*s,y1=vp.y+vp.h/2-(b[3]+oy-vp.cy)*s,y2=vp.y+vp.h/2-(b[1]+oy-vp.cy)*s;
       if(x2<vp.x||x1>vp.x+vp.w||y2<vp.y||y1>vp.y+vp.h)return;var tt=(l.tt[3]||'').toUpperCase();if(tt&&!co[tt])co[tt]=1});
@@ -654,7 +692,8 @@ function vuaTrang(){
 /* ---------- 10. MÀN BIÊN TẬP ---------- */
 function manBienTap(){
   css();var bt=S.bt;
-  if(bt.cx==null||!bt.N){tuDien();vuaTrang()}
+  var dauLop=S.lop.filter(function(L){return L.hien!==false}).map(function(L){return L.id}).sort().join(',');
+  if(bt.cx==null||!bt.N||bt.lopKhop!==dauLop){tuDien();vuaTrang();bt.lopKhop=dauLop}
   var cv=el('canvas',{class:'bdtrang'}),dpr=Math.min(window.devicePixelRatio||1,2.5),kTrang=1;
   var tlSel=el('select',{},[el('option',{value:'0',text:'Tự do (kéo, chụm để phóng to)'})].concat(THANG_TL.map(function(n){return el('option',{value:n,text:'1:'+so(n).replace(/ /g,'.')})})));tlSel.value=String(bt.tyLe||0);
   var oTl=el('span',{class:'hint'});
@@ -692,15 +731,21 @@ function manBienTap(){
     el('label',{text:'Thành phần tham gia (ký tên)'}),ttg,el('div',{},[o('coKy','Có phần "THÀNH PHẦN THAM GIA"')]),
     el('div',{class:'hint',text:'Kéo bằng 1 ngón để di chuyển bản đồ trong khung, chụm 2 ngón để phóng to/thu nhỏ (khi tỷ lệ "Tự do"). Vị trí GPS của bạn chỉ hiện khi xem, không có trong file xuất.'}),
     el('div',{style:'display:flex;gap:8px;margin:12px 0 30px'},[nutPdf,nutAnh])]);
-  var khungTrang=el('div',{});khungTrang.appendChild(cv);
+  var oCanh=el('div',{class:'warn',style:'display:none;margin:0 0 8px'}),khungTrang=el('div',{});khungTrang.appendChild(oCanh);khungTrang.appendChild(cv);
   show([el('div',{class:'bdbt rong'},[khungTrang,form])],function(){luu(1);manXem()});
   $('app').className='bd';
   function coKhung(){var B=boCuc(bt),w=khungTrang.getBoundingClientRect().width||360;
     var h=w*B.H/B.W,maxH=window.innerHeight*(window.innerWidth>=980?0.9:1.6);if(h>maxH){w=maxH*B.W/B.H;h=maxH}
     cv.style.width=w+'px';cv.style.height=h+'px';cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);kTrang=cv.width/B.W}
   var nhanhCho=false;
-  function ve(nhanh){var ctx=cv.getContext('2d');veTrang(ctx,kTrang,{gps:1,dpr:dpr,nhanh:nhanh,cg:1});
-    oTl.textContent='Tỷ lệ hiện tại 1:'+so(bt.N).replace(/ /g,'.')+(bt.tyLe?'':' (tự do)')}
+  function ve(nhanh){var ctx=cv.getContext('2d');var B=veTrang(ctx,kTrang,{gps:1,dpr:dpr,nhanh:nhanh,cg:1});
+    oTl.textContent='Tỷ lệ hiện tại 1:'+so(bt.N).replace(/ /g,'.')+(bt.tyLe?'':' (tự do)');
+    /* các lớp đã nhập nằm ngoài khung in → nhắc */
+    var b=hopLop(S.lop),t=B.trong,hw=t.w*bt.N/2000,hh=t.h*bt.N/2000;
+    var ngoai=b&&(b[2]<bt.cx-hw||b[0]>bt.cx+hw||b[3]<bt.cy-hh||b[1]>bt.cy+hh);
+    oCanh.style.display=ngoai?'':'none';
+    if(ngoai&&!oCanh.firstChild)oCanh.appendChild(el('div',{},['⚠️ Đường/vùng đã nhập đang nằm ngoài khung bản đồ. ',
+      el('span',{class:'link',text:'Đưa vào giữa khung',onclick:function(){vuaTrang();doi()}})]))}
   var veNhanh=moiKhung(function(){ve(true)});
   var HEN=0;function doi(boCucDoi){if(boCucDoi)coKhung();clearTimeout(HEN);HEN=setTimeout(function(){ve();luu()},60)}
   coKhung();ve();
