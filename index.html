@@ -364,7 +364,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='1.5';
+var BAN_APP='1.6';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -1338,7 +1338,15 @@ function plView(body){
   body.appendChild(el('div',{class:'card'},con.concat([nut,msg])));
 }
 
-function bdHome(){dangXayDung('🗺️ Bản đồ',['Xem bản đồ và các lớp của hạt (dùng được khi không có mạng)','Vị trí GPS, tọa độ VN-2000','Đánh dấu điểm, khoanh vùng, ảnh gắn tọa độ','Ghi đường đi (track), in bản đồ'])}
+/* Bản đồ: mã nằm ở bando.js (nạp khi cần) – xem bản đồ nền theo xã, vị trí GPS, nhập track/vùng vi phạm, biên tập & in sơ đồ */
+function bdHome(){
+  if(window.BD&&BD.mo)return BD.mo();
+  show([msgCard('Đang mở bản đồ…')],boot);
+  var s=document.createElement('script');s.src='bando.js';
+  s.onload=function(){if(window.BD&&BD.mo)BD.mo();else show([msgCard('Không mở được chức năng bản đồ.',true,[retry(bdHome)])],boot)};
+  s.onerror=function(){s.remove();show([msgCard('Không tải được chức năng bản đồ (cần có mạng ở lần mở đầu tiên).',true,[retry(bdHome)])],boot)};
+  document.head.appendChild(s);
+}
 
 /* ---------- duyệt người dùng ---------- */
 function duyetView(){
@@ -2641,6 +2649,7 @@ function chiaSeFile(blob,tenFile,ic){
   con.push(el('div',{class:'hint',style:'margin-top:10px'},[
     el('div',{text:'Gửi qua Zalo: bấm "Tải về máy", rồi mở cuộc trò chuyện Zalo → bấm 📎 (đính kèm) → Tài liệu/File → thư mục Tải xuống (Download) → chọn file '+tenFile+'.'}),
     word?el('div',{style:'margin-top:6px',text:'In: mở file vừa tải (thông báo "Đã tải xong" hoặc ứng dụng Tệp → Tải xuống) bằng Word hoặc WPS Office → In (máy in Wi-Fi / Mopria).'}):
+    /\.(pdf|jpe?g|png)$/i.test(tenFile)?el('div',{style:'margin-top:6px',text:'Mở file: chạm thông báo "Đã tải xong" hoặc vào ứng dụng Tệp → Tải xuống. In: mở file → In (máy in Wi-Fi / Mopria).'}):
       el('div',{style:'margin-top:6px',text:'Mở file: chạm thông báo "Đã tải xong" hoặc vào ứng dụng Tệp → Tải xuống, mở bằng Excel / WPS / Google Trang tính.'})]),kq);
   con.push(el('div',{style:'height:8px'}),el('button',{class:'s',text:'Đóng',onclick:function(){ov.remove()}}));
   var ov=el('div',{class:'xlov',onclick:function(e){if(e.target===ov)ov.remove()}},[el('div',{class:'xlbox'},con)]);
