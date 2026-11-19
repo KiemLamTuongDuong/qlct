@@ -57,7 +57,22 @@ function macDinh(){return {goi:'',xem:null,lop:[],chu:[],bt:{loai:'tt',d1:'',d2:
   luoi:true,nhanTk:true,nhanKh:true,nhanLo:false,cgLo:true,cgTk:true,cgMau:false,thuoc:true,bac:true,vtCg:'dt',tuSua:{}}}}
 function nap(){try{S=JSON.parse(localStorage.getItem(khoa())||'null')}catch(e){S=null}
   var d=macDinh();if(!S||typeof S!=='object')S=d;Object.keys(d).forEach(function(k){if(S[k]===undefined)S[k]=d[k]});
-  Object.keys(d.bt).forEach(function(k){if(S.bt[k]===undefined)S.bt[k]=d.bt[k]});}
+  Object.keys(d.bt).forEach(function(k){if(S.bt[k]===undefined)S.bt[k]=d.bt[k]});
+  /* tắt hẳn ứng dụng rồi mở lại = phiên mới → tự làm sơ đồ mới (giữ bản đồ nền, khổ giấy, tùy chọn).
+     Chuyển màn hình, ra trang chủ, tải lại trang, ẩn app xuống nền thì vẫn giữ sơ đồ đang làm. */
+  var ph=phienBD();
+  if(ph&&S.phien!==ph){if(S.lop.length||S.chu.length||S.bt.ttg||S.bt.d1||S.bt.cx!=null)lamMoi();S.phien=ph;luu(1)}}
+/* mã phiên: sessionStorage còn khi tải lại trang / ẩn app, mất khi tắt hẳn ứng dụng (đóng tab) */
+function phienBD(){try{var k='qlct_bd_phien',v=sessionStorage.getItem(k);
+  if(!v){v=Date.now().toString(36)+Math.random().toString(36).slice(2,6);sessionStorage.setItem(k,v)}return v}catch(e){return ''}}
+/* Làm sơ đồ mới: xóa lớp đã nhập, chữ, tiêu đề, thành phần tham gia, vị trí khung in.
+   Giữ: bản đồ nền đang chọn, khổ giấy và các tùy chọn hiển thị / chú giải. */
+function lamMoi(){
+  var d=macDinh().bt,bt=S.bt;
+  S.lop=[];S.chu=[];
+  ['loai','d1','d2','d3','ttg','tyLe','cx','cy','N','tuSua'].forEach(function(k){bt[k]=JSON.parse(JSON.stringify(d[k]))});
+  delete bt.lopKhop;luu(1);
+}
 var HEN_LUU=0;
 function luu(ngay){clearTimeout(HEN_LUU);var f=function(){try{localStorage.setItem(khoa(),JSON.stringify(S))}catch(e){thongBao('Bộ nhớ máy đầy – chưa lưu được bản đồ. Hãy xóa bớt lớp đã nhập.',5000)}};if(ngay)f();else HEN_LUU=setTimeout(f,400)}
 function ktt(){return GOI?GOI.g.ktt:104.75}
@@ -414,7 +429,7 @@ function manXem(){
   var bar=el('div',{class:'bdbar'},[sel,
     el('button',{class:'s',text:'📍',title:'Về vị trí của tôi',onclick:function(){if(GPS.e){V.cx=GPS.e;V.cy=GPS.n;if(V.s<0.5)V.s=1;ve();luuXem()}else thongBao(GPS.loi||'Đang chờ GPS…',3000)}}),
     el('button',{class:'s',text:'➕ Nhập file',onclick:function(){oFile.click()}}),
-    el('button',{class:'p',text:'🖨️ Biên tập & in',onclick:manBienTap}),oFile]);
+    el('button',{class:'p',text:'🖨️ Biên tập & in',onclick:manBienTap}),nutLamMoi(function(){S.xem=null;manXem()}),oFile]);
   var dsLop=el('div',{class:'bdlop'});
   show([bar,cv,info,dsLop],function(){tatGps();boot()});
   $('app').className='bd';
@@ -469,6 +484,9 @@ function manXem(){
   if(!V||!V.s)vuaKhung();
   veDsLop();ve();
 }
+function nutLamMoi(sau){return el('button',{class:'d',text:'🔄 Làm sơ đồ mới',onclick:function(){
+  if(!confirm('Bắt đầu sơ đồ mới?\n\nSẽ xóa: các đường/vùng/điểm đã nhập, chữ ghi trên bản đồ, tiêu đề, thành phần tham gia.\nGiữ lại: bản đồ nền, khổ giấy và các tùy chọn hiển thị.\n\nNên xuất PDF/ảnh sơ đồ hiện tại trước nếu cần. (Tắt hẳn ứng dụng rồi mở lại cũng tự bắt đầu sơ đồ mới.)'))return;
+  lamMoi();thongBao('Đã bắt đầu sơ đồ mới.',2500);sau()}})}
 function ngayChu(n){if(!n)return '';var a=n[0].split('-'),b=n[1].split('-');
   if(n[0]===n[1])return a[2]+'/'+a[1]+'/'+a[0];
   if(a[0]===b[0]&&a[1]===b[1])return a[2]+'-'+b[2]+'/'+a[1]+'/'+a[0];
@@ -730,7 +748,8 @@ function manBienTap(){
     el('div',{},[o('cgTk','Tiểu khu, khoảnh'),o('cgLo','Lô – trạng thái – diện tích'),o('cgMau','Màu trạng thái rừng')]),
     el('label',{text:'Thành phần tham gia (ký tên)'}),ttg,el('div',{},[o('coKy','Có phần "THÀNH PHẦN THAM GIA"')]),
     el('div',{class:'hint',text:'Kéo bằng 1 ngón để di chuyển bản đồ trong khung, chụm 2 ngón để phóng to/thu nhỏ (khi tỷ lệ "Tự do"). Vị trí GPS của bạn chỉ hiện khi xem, không có trong file xuất.'}),
-    el('div',{style:'display:flex;gap:8px;margin:12px 0 30px'},[nutPdf,nutAnh])]);
+    el('div',{style:'display:flex;gap:8px;margin:12px 0 10px'},[nutPdf,nutAnh]),
+    el('div',{style:'margin:0 0 30px'},[nutLamMoi(function(){manXem()})])]);
   var oCanh=el('div',{class:'warn',style:'display:none;margin:0 0 8px'}),khungTrang=el('div',{});khungTrang.appendChild(oCanh);khungTrang.appendChild(cv);
   show([el('div',{class:'bdbt rong'},[khungTrang,form])],function(){luu(1);manXem()});
   $('app').className='bd';
