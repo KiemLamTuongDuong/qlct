@@ -2,7 +2,7 @@
    1) Lưu sẵn giao diện để ứng dụng mở ngay, kể cả khi mạng yếu. Dữ liệu (script.google.com) không đi qua đây.
    2) Nhận thông báo đẩy (Firebase Cloud Messaging) khi ứng dụng đang đóng, chạm vào thì mở đúng màn hình.
    Tự cập nhật: sửa index.html/config.js trên GitHub là đủ, app tự phát hiện. Chỉ đổi PHIEN_BAN khi thêm/bớt file trong FILES. */
-const PHIEN_BAN = 'qlct-v10';
+const PHIEN_BAN = 'qlct-v11';
 const FILES = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
   'mau/bb_kiem_tra.docx', 'mau/bb_tiep_nhan.docx', 'mau/phu_luc.xlsx'];   // mẫu biên bản, phụ lục: dùng được khi không có mạng
 

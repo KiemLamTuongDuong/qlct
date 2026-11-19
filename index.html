@@ -364,7 +364,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='1.3';
+var BAN_APP='1.4';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -837,7 +837,15 @@ var DOCX={
       });
     }
     function nut(n,ctx){
-      if(n.localName==='p')doan(n,ctx);
+      if(n.localName==='p'){
+        var mx=txt(n).trim().match(/^\{\{@(\w+)\}\}$/);
+        if(mx){   // chèn khối XML dựng sẵn (bảng ký…)
+          var f=new DOMParser().parseFromString('<w:goc xmlns:w="'+W+'">'+String(val(ctx,mx[1]))+'</w:goc>','application/xml');
+          kids(f.documentElement).forEach(function(c){n.parentNode.insertBefore(d.importNode(c,true),n)});
+          rm(n);return;
+        }
+        doan(n,ctx);
+      }
       else if(n.localName==='tbl')bang(n,ctx);
       else if(n.localName==='sdt'){var c=n.getElementsByTagNameNS(W,'sdtContent')[0];if(c)day(kids(c),ctx)}
     }
@@ -876,6 +884,39 @@ var DOCX={
   }
 };
 
+/* ---- khu ký: bảng 3 cột dựng sẵn (XML) ----
+   nhom: [{td: chức danh ô ký, ds:[họ tên]}]; mỗi nhóm chiếm số ô bằng số người (tối đa 3/hàng, nhiều hơn thì sang hàng sau, ghi lại dòng ĐẠI DIỆN).
+   Hàng đầu: 2 ô cho các nhóm, ô thứ 3 (góc phải) là NGƯỜI LẬP BIÊN BẢN. Nhóm được xếp vào hàng đầu tiên còn đủ chỗ. */
+function bbKhuKy(nhom,nguoiLap){
+  var doan=[];
+  nhom.forEach(function(g,gi){for(var i=0;i<g.ds.length;i+=3)doan.push({td:g.td,ds:g.ds.slice(i,i+3),g:gi})});
+  var hang=[{con:2,o:[]}],hangCuaNhom={};
+  doan.forEach(function(d){   // xếp vào hàng đầu tiên còn đủ chỗ; phần tiếp của cùng đơn vị luôn ở hàng sau
+    var tu=hangCuaNhom[d.g]===undefined?0:hangCuaNhom[d.g]+1,h=null,hi=-1;
+    for(var i=tu;i<hang.length;i++)if(hang[i].con>=d.ds.length){h=hang[i];hi=i;break}
+    if(!h){h={con:3,o:[]};hang.push(h);hi=hang.length-1}
+    h.o.push(d);h.con-=d.ds.length;hangCuaNhom[d.g]=hi;
+  });
+  var W='w:',e=function(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')};
+  var rpr=function(b,i,sz){return '<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>'+(b?'<w:b/><w:bCs/>':'')+(i?'<w:i/><w:iCs/>':'')+'<w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/></w:rPr>'};
+  var p=function(t,o){o=o||{};return '<w:p><w:pPr>'+(o.giu?'<w:keepNext/>':'')+'<w:spacing w:before="'+(o.tr||0)+'" w:after="'+(o.sau||0)+'" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>'+(t?'<w:r>'+rpr(o.b,o.i,o.sz||26)+'<w:t xml:space="preserve">'+e(t)+'</w:t></w:r>':'')+'</w:p>'};
+  var CW=3212;
+  var tc=function(n,noi){return '<w:tc><w:tcPr><w:tcW w:w="'+(CW*n)+'" w:type="dxa"/>'+(n>1?'<w:gridSpan w:val="'+n+'"/>':'')+'</w:tcPr>'+noi+'</w:tc>'};
+  var tr=function(noi,giu){return '<w:tr><w:trPr><w:cantSplit/></w:trPr>'+noi+'</w:tr>'};
+  var oTd=function(n,td){return tc(n,td?p(td,{b:1,sz:24,tr:200,giu:1})+p('(Ký, ghi rõ họ tên)',{i:1,sz:24,giu:1}):p('',{giu:1}))};
+  var oTen=function(t){return tc(1,p(t,{b:1,sz:26,tr:1150,sau:160}))};
+  var x='<w:tbl><w:tblPr><w:tblW w:w="'+(CW*3)+'" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="57" w:type="dxa"/><w:right w:w="57" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="'+CW+'"/><w:gridCol w:w="'+CW+'"/><w:gridCol w:w="'+CW+'"/></w:tblGrid>';
+  x+=tr(tc(3,p('CÁC THÀNH PHẦN THAM GIA',{b:1,sz:26,tr:240,sau:60,giu:1})));
+  hang.forEach(function(h,ri){
+    var dau='',ten='',dung=0;
+    h.o.forEach(function(d){dau+=oTd(d.ds.length,d.td);d.ds.forEach(function(t){ten+=oTen(t)});dung+=d.ds.length});
+    var trong=(ri===0?2:3)-dung;
+    for(var k=0;k<trong;k++){dau+=oTd(1,'');ten+=oTen('')}
+    if(ri===0){dau+=oTd(1,'NGƯỜI LẬP BIÊN BẢN');ten+=oTen(nguoiLap)}
+    x+=tr(dau)+tr(ten);
+  });
+  return x+'</w:tbl>';
+}
 /* ---- dữ liệu mẫu biên bản: từ dữ liệu form → dữ liệu điền ---- */
 var BB_CHAM='…………………';
 function bbNgay(s){var m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?{d:m[3],m:Number(m[2])<3?m[2]:String(Number(m[2])),y:m[1],dmy:m[3]+'/'+m[2]+'/'+m[1]}:{d:'……',m:'……',y:'……',dmy:'……/……/……'}}
@@ -895,14 +936,17 @@ function bbDuLieuKT(f){
   var tp=(f.tp||[]).filter(function(x){return x&&String(x.hoTen||'').trim()});
   var lapGoc=(f.tp||[])[Number(f.lap)||0],lap=tp.indexOf(lapGoc)>=0?lapGoc:(tp[0]||{hoTen:''});
   var dt=f.dt||{},ck=f.ck||{},ckTen=String(ck.ten||'').trim(),HDU=hd.toUpperCase();
-  /* khu ký 2 cột: đối tượng, người chứng kiến (nếu có), đại diện các đơn vị; người lập luôn ở ô TRÁI hàng cuối */
-  var o=[];
-  if(String(dt.ten||'').trim())o.push({td:'CÁ NHÂN/TỔ CHỨC ĐƯỢC '+HDU,ten:String(dt.ten).trim()});
-  if(ckTen)o.push({td:'NGƯỜI CHỨNG KIẾN',ten:ckTen});
-  tp.filter(function(x){return x!==lap}).forEach(function(x){var dv=String(x.donVi||'').trim();o.push({td:dv?'ĐẠI DIỆN '+dv.toLocaleUpperCase('vi'):'THÀNH PHẦN THAM GIA',ten:x.hoTen.trim()})});
-  var oLap={td:'NGƯỜI LẬP BIÊN BẢN',ten:lap.hoTen||''},cuoi=o.length?o.pop():{td:'',ten:''},kyHang=[];
-  for(var i=0;i<o.length;i+=2)kyHang.push({a_td:o[i].td,a_ten:o[i].ten,b_td:o[i+1]?o[i+1].td:'',b_ten:o[i+1]?o[i+1].ten:''});
-  kyHang.push({a_td:oLap.td,a_ten:oLap.ten,b_td:cuoi.td,b_ten:cuoi.ten});
+  /* khu ký: lưới 3 ô ký mỗi hàng; người lập ở góc trên bên phải; cùng đơn vị ghi "ĐẠI DIỆN …" một lần, ký ngang nhau */
+  var nhom=[];
+  if(String(dt.ten||'').trim())nhom.push({td:'CÁ NHÂN/TỔ CHỨC ĐƯỢC '+HDU,ds:[String(dt.ten).trim()]});
+  if(ckTen)nhom.push({td:'NGƯỜI CHỨNG KIẾN',ds:[ckTen]});
+  var theoDv={};
+  tp.filter(function(x){return x!==lap}).forEach(function(x){
+    var dv=String(x.donVi||'').trim(),k=dv.toLocaleLowerCase('vi');
+    if(!theoDv[k]){theoDv[k]={td:dv?'ĐẠI DIỆN '+dv.toLocaleUpperCase('vi'):'THÀNH PHẦN THAM GIA',ds:[]};nhom.push(theoDv[k])}
+    theoDv[k].ds.push(x.hoTen.trim());
+  });
+  var khuKy=bbKhuKy(nhom,lap.hoTen||'');
   return {
     coQuan1:bbV(f.coQuan1),coQuan2:bbV(f.coQuan2),TIEU_DE:tieuDe||'KIỂM TRA',trichYeu:String(f.trichYeu||'').trim(),
     ngayD:n.d,ngayM:n.m,ngayY:n.y,gio:g.h,phut:g.p,diaDiem:bbV(f.diaDiem),
@@ -917,7 +961,7 @@ function bbDuLieuKT(f){
     noiDung:bbChuoiDong(f.noiDung),ketLuan:bbChuoiDong(f.ketLuan),
     gioKT:gk.h,phutKT:gk.p,ktD:kt.d,ktM:kt.m,ktY:kt.y,
     soBan:bbV(f.soBan,'03'),giaoBan:DOCX.co(dt.ten)?', giao cho người/tổ chức được '+hd+' một bản':'',
-    nguoiLap:lap.hoTen||'',kyHang:kyHang
+    nguoiLap:lap.hoTen||'',khuKy:khuKy
   };
 }
 function bbNguoiDong(x,i){
@@ -1125,11 +1169,11 @@ function bbTieuDe(f){
   return 'Biên bản '+String(t).toLowerCase()+(f.trichYeu?' '+f.trichYeu:'');
 }
 function bbMoi(mau){
-  var u=BBCFG,me={hoTen:u.ten,chucVu:u.vaiTro||'',donVi:bbDonVi()};
+  var u=BBCFG,me={hoTen:u.ten,chucVu:u.chucVu||'',donVi:bbDonVi()};
   if(mau==='TN')return {mau:'TN',coQuan1:'ỦY BAN NHÂN DÂN',coQuan2:'XÃ TƯƠNG DƯƠNG',so:'',diaDanh:'Tương Dương',ngay:u.homNay,
     tieuDe:'Bàn giao, tiếp nhận động vật rừng',
     canCu:'Căn cứ Nghị định số 77/2025/NĐ-CP ngày 01 tháng 4 năm 2025 của Chính phủ quy định thẩm quyền, thủ tục xác lập quyền sở hữu toàn dân về tài sản và xử lý đối với tài sản được xác lập quyền sở hữu toàn dân;\nCăn cứ Thông tư số 26/2025/TT-BNNMT ngày 24/6/2025 của Bộ trưởng Bộ Nông nghiệp và Môi trường quy định về quản lý lâm sản, thủy sản là tài sản được xác lập quyền sở hữu toàn dân;\nCăn cứ đề nghị của ',
-    gio:'',diaDiem:'',benGiao:[{hoTen:''}],benNhan:[{hoTen:u.ten,chucVu:u.vaiTro||'',coQuan:bbDonVi()}],chungKien:[],
+    gio:'',diaDiem:'',benGiao:[{hoTen:''}],benNhan:[{hoTen:u.ten,chucVu:u.chucVu||'',coQuan:bbDonVi()}],chungKien:[],
     taiSan:[{tenVN:'',dvt:'Cá thể',soLuong:'1'}],hoSo:'Không',mucDich:'chăm sóc, cứu hộ và xử lý theo đúng quy định của pháp luật',
     tnGiao:'Bên giao có trách nhiệm bàn giao đúng cá thể động vật đã phát hiện, phối hợp với cơ quan chức năng khi có yêu cầu cung cấp thông tin',
     tnNhan:'tiếp tục chăm sóc, cứu hộ hoặc bàn giao cho trung tâm cứu hộ để chăm sóc trong quá trình xử lý theo đúng quy định',gioKT:'',soTo:'01',soBan:'03'};
@@ -1167,7 +1211,7 @@ function bbForm(mau,rec,f0){
       tpBox.innerHTML='';
       tpBox.appendChild(bbDs(f.tp,[{k:'hoTen',label:'Họ và tên',list:'bbNguoi',chinh:1},{k:'chucVu',label:'Chức vụ',chinh:1},{k:'donVi',label:'Đơn vị',chinh:1}],
         'Thêm người',function(){return {hoTen:'',chucVu:'',donVi:bbDonVi()}},
-        function(x,v,capNhat){var n=timNguoi(v);if(n){x.chucVu=n.vai||x.chucVu;x.donVi=x.donVi||bbDonVi();capNhat();veLap()}}));
+        function(x,v,capNhat){var n=timNguoi(v);if(n){x.chucVu=n.cv||x.chucVu;x.donVi=x.donVi||bbDonVi();capNhat();veLap()}}));
     };
     var lapSel=el('select',{});
     var veLap=function(){lapSel.innerHTML='';f.tp.forEach(function(x,i){lapSel.appendChild(el('option',{value:String(i),text:x.hoTen||('Người '+(i+1))}))});lapSel.value=String(Math.min(Number(f.lap)||0,Math.max(f.tp.length-1,0)))};
@@ -1198,7 +1242,7 @@ function bbForm(mau,rec,f0){
     if(!Array.isArray(f.benGiao))f.benGiao=[];if(!Array.isArray(f.benNhan))f.benNhan=[];if(!Array.isArray(f.chungKien))f.chungKien=[];if(!Array.isArray(f.taiSan))f.taiSan=[];
     var NG=[{k:'hoTen',label:'Họ và tên',list:'bbNguoi',chinh:1},{k:'chucVu',label:'Chức vụ',chinh:1},{k:'coQuan',label:'Cơ quan, đơn vị',chinh:1},
       {k:'diaChi',label:'Địa chỉ (cá nhân hoặc cơ quan)'},{k:'cccd',label:'Số CCCD/CC'},{k:'ngayCap',label:'Ngày cấp'},{k:'noiCap',label:'Nơi cấp'},{k:'sdt',label:'Số điện thoại'}];
-    var dien=function(x,v,capNhat){var n=timNguoi(v);if(n){x.chucVu=x.chucVu||n.vai||'';x.coQuan=x.coQuan||bbDonVi();capNhat()}};
+    var dien=function(x,v,capNhat){var n=timNguoi(v);if(n){x.chucVu=x.chucVu||n.cv||'';x.coQuan=x.coQuan||bbDonVi();capNhat()}};
     var moiNg=function(){return {hoTen:''}};
     var TS=[{k:'tenVN',label:'Tên tiếng Việt / tên thương mại',chinh:1},{k:'tenKH',label:'Tên khoa học',chinh:1},{k:'soLuong',label:'Số lượng / trọng lượng',chinh:1},{k:'dvt',label:'Đơn vị tính',chinh:1},
       {k:'nhom',label:'Nhóm loài'},{k:'gioiTinh',label:'Giới tính'},{k:'kichThuoc',label:'Kích thước'},{k:'tinhTrang',label:'Tình trạng'},{k:'ghiChu',label:'Ghi chú'}];
