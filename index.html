@@ -40,16 +40,22 @@ main.home .chao{padding:10px 14px;margin-bottom:10px}
 main.home .chao .chip{font-size:13px;padding:3px 9px;margin:1px 3px 1px 0}
 main.home .chao .mut{font-size:14px}
 main.home .chao .hello{font-size:20px;margin:0 0 4px}
-.grid.g6{flex:1;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,minmax(120px,1fr));gap:10px}
-.grid.g6 .tile{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;padding:12px 8px;border-top-width:6px}
-.grid.g6 .tile .ic{font-size:58px;line-height:1.05}
-.grid.g6 .tile .t{font-size:22px;line-height:1.2;margin-top:8px}
-.grid.g6 .tile .s{font-size:15px;line-height:1.25;margin-top:4px}
-.grid.g6 .badge{font-size:15px;padding:2px 10px;top:10px;right:12px}
-@media(max-width:380px){.grid.g6 .tile .ic{font-size:56px}.grid.g6 .tile .t{font-size:21px}.grid.g6 .tile .s{font-size:15px}}
-@media(min-width:900px) and (orientation:landscape) and (pointer:fine){.grid.g6{grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,minmax(180px,1fr))}.grid.g6 .tile .ic{font-size:72px}.grid.g6 .tile .t{font-size:24px}}
-.grid.qt{grid-template-columns:repeat(3,1fr);margin-top:12px}
-.grid.qt .tile{min-height:0;padding:10px 6px}.grid.qt .tile .ic{font-size:26px}.grid.qt .tile .t{font-size:15px}.grid.qt .tile .s{display:none}
+/* trang chủ: mọi ô bằng nhau; số hàng/cột tính theo số ô (--h2/--h3/--h4 do home() đặt); vừa màn hình thì chia đều, không vừa thì cuộn */
+.grid.gh{flex:1;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(var(--h2,3),minmax(112px,1fr));gap:10px}
+@media(min-width:620px){.grid.gh{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(var(--h3,2),minmax(140px,1fr))}}
+@media(min-width:900px) and (orientation:landscape) and (pointer:fine){.grid.gh.nhieu{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(var(--h4,2),minmax(150px,1fr))}}
+.grid.gh .tile{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;min-width:0;padding:8px 6px;border-top-width:6px;overflow:hidden}
+.grid.gh .tile .ic{font-size:44px;line-height:1.05}
+.grid.gh .tile .t{font-size:18px;line-height:1.2;margin-top:6px}
+.grid.gh .tile .s{font-size:13px;line-height:1.25;margin-top:3px}
+@supports (container-type:size){
+  .grid.gh .tile{container-type:size}
+  .grid.gh .tile .ic{font-size:clamp(28px,36cqmin,74px)}
+  .grid.gh .tile .t{font-size:clamp(14px,min(10cqw,13cqh),24px)}
+  .grid.gh .tile .s{font-size:clamp(12px,min(7cqw,8.5cqh),15px)}
+  @container (max-height:128px){.grid.gh .tile .s{display:none}}
+}
+.grid.gh .badge{font-size:15px;padding:2px 10px;top:10px;right:12px}
 .cochu{display:inline-flex;gap:4px;align-items:center}
 .cochu span{border:1px solid var(--line);border-radius:8px;padding:2px 9px;cursor:pointer;font-weight:bold;color:var(--g)}
 .cochu span.on{background:var(--g);color:#fff;border-color:var(--g)}
@@ -358,7 +364,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='1.0';
+var BAN_APP='19/11/2026 (ô bằng nhau, biên bản, bản đồ)';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -649,6 +655,11 @@ function home(){
     {ic:'📈',t:'Báo cáo',s:'Toàn hạt, theo xã, theo cán bộ, của tôi',fn:function(){bcHome()}},
     {ic:'🎓',t:'Hoạt động chuyên môn',s:'Lịch chuyên môn cả hạt',fn:function(){cmHome()}}
   ];
+  /* chức năng thử nghiệm: chỉ người được quản trị chọn (và quản trị) mới thấy */
+  var RG=ME.rieng||{},thuNghiem=c.quanTri?'🧪 Chỉ hiện với người được chọn':'';
+  var tilesRieng=[];
+  if(RG.BB)tilesRieng.push({ic:'📋',t:'Biên bản / báo cáo',s:thuNghiem||'Tạo biên bản, bảng chấm điểm theo mẫu',fn:bbHome});
+  if(RG.BD)tilesRieng.push({ic:'🗺️',t:'Bản đồ',s:thuNghiem||'Xem bản đồ, vị trí, khoanh vùng',fn:bdHome});
   /* phân hệ bị quản trị khóa: người dùng không vào được; quản trị vẫn vào được và thấy dấu 🔒 */
   var KH=ME.khoa||{};
   ['NK','NV','SLT','LICH','BC','CM'].forEach(function(m,i){
@@ -657,6 +668,7 @@ function home(){
     t.off=true;t.badge=0;t.s='🔒 Tạm khóa';
     t.fn=function(){alert('Chức năng "'+t.t+'" đang tạm khóa'+(k.lyDo?': '+k.lyDo:'')+'.\nLiên hệ quản trị nếu cần.')};
   });
+  tiles=tiles.concat(tilesRieng);
   if(c.quanTri)tiles.push({ic:'👥',t:'Duyệt người dùng',s:'Liên kết email mới',badge:ME.choDuyet,fn:duyetView});
   if(c.quanTri)tiles.push({ic:'⚙️',t:'Quản lý',s:'Quyền, vai trò, địa bàn, năm sử dụng',fn:qtView});
   if(c.quanTri)tiles.push({ic:'🧹',t:'Dọn dữ liệu',s:'Dồn dòng trống, đánh lại mã',fn:donView});
@@ -665,15 +677,25 @@ function home(){
     if(t.badge)kids.push(el('span',{class:'badge',text:String(t.badge)}));
     return el('div',{class:'tile'+(t.off?' off':''),onclick:t.fn||function(){}},kids);
   };
-  var grid=el('div',{class:'grid g6'},tiles.slice(0,6).map(oTile));
-  var qt=tiles.length>6?el('div',{class:'grid qt'},tiles.slice(6).map(oTile)):null;
+  /* một lưới duy nhất, mọi ô cùng kích thước */
+  var n=tiles.length;
+  var grid=el('div',{class:'grid gh'+(n>9?' nhieu':''),style:'--h2:'+Math.ceil(n/2)+';--h3:'+Math.ceil(n/3)+';--h4:'+Math.ceil(n/4)},tiles.map(oTile));
   var coChu=el('span',{class:'cochu'},[el('span',{text:'Cỡ chữ:',style:'border:none;padding:0;cursor:default;font-weight:normal;color:var(--mut)'})].concat(
     [['1','A'],['1.12','A+'],['1.25','A++']].map(function(x){return el('span',{class:CO_CHU===x[0]?'on':'',text:x[1],onclick:function(){datCoChu(x[0]);home()}})})));
   show([el('div',{class:'card chao'},[el('p',{class:'hello',text:'Xin chào, '+u.ten}),el('div',{},chips),
         el('p',{class:'mut',style:'margin:6px 0 0'},[el('span',{class:'link',text:'🔔 Thông báo',onclick:tbView}),el('span',{text:' · '}),el('span',{class:'link',text:'Đăng xuất',onclick:dangXuat}),el('span',{text:' · '}),coChu]),el('div',{class:'mut',style:'font-size:11px;margin-top:4px',text:'Phiên bản '+BAN_APP})]),
-    moiBatThongBao(),grid,qt]);
+    moiBatThongBao(),grid]);
   $('app').className='home';
 }
+
+/* ---------- chức năng thử nghiệm (đang xây dựng) ---------- */
+function dangXayDung(tieuDe,y){
+  show([el('div',{class:'card'},[el('p',{class:'hello',text:tieuDe}),
+    el('div',{class:'hint',text:'Chức năng đang xây dựng – hiện chỉ những người được quản trị chọn mới thấy.'}),
+    el('ul',{},y.map(function(t){return el('li',{text:t})}))])],boot);
+}
+function bbHome(){dangXayDung('📋 Biên bản / báo cáo',['Tạo biên bản theo mẫu (điền ô, danh sách người tham gia)','Tạo bảng chấm điểm theo mẫu','Xuất PDF / Word, gửi Zalo, in','Gắn biên bản với nhật ký công tác'])}
+function bdHome(){dangXayDung('🗺️ Bản đồ',['Xem bản đồ và các lớp của hạt (dùng được khi không có mạng)','Vị trí GPS, tọa độ VN-2000','Đánh dấu điểm, khoanh vùng, ảnh gắn tọa độ','Ghi đường đi (track), in bản đồ'])}
 
 /* ---------- duyệt người dùng ---------- */
 function duyetView(){
@@ -2312,6 +2334,37 @@ function qtRender(r){
       el('label',{style:'display:flex;gap:10px;align-items:center;margin-top:10px'},[ax,el('span',{text:'📷 Hiện chức năng gắn / xem ảnh hiện trường'})]),
       el('p',{},[aBtn]),aMsg]);
   }
+  /* chức năng thử nghiệm: chọn người được thấy (quản trị luôn thấy) */
+  var rgCard=null;
+  if(r.dsRieng){
+    var rg=r.rieng||{},rgMsg=el('div',{}),rgChon={};
+    var nguoiHd=r.nguoi.filter(function(u){return u.hoatDong});
+    var rgBox=el('div',{},r.dsRieng.map(function(c){
+      var chon=rgChon[c.ma]={};(rg[c.ma]||[]).forEach(function(t){chon[t]=true});
+      var dem=el('span',{class:'mut'});
+      var capDem=function(){dem.textContent=' – '+Object.keys(chon).filter(function(t){return chon[t]}).length+' người được chọn'};capDem();
+      var ds=el('div',{class:'pick',style:'max-height:240px;overflow:auto;margin-top:6px'},nguoiHd.map(function(u){
+        var qtv=u.nhom==='Quản trị hệ thống',x=el('input',{type:'checkbox'});x.style.width='auto';
+        x.checked=qtv||!!chon[u.ten];x.disabled=qtv;
+        x.addEventListener('change',function(){chon[u.ten]=x.checked;capDem()});
+        return el('label',{style:'display:flex;gap:10px;align-items:center;margin:4px 0'},[x,el('span',{text:u.ten+(qtv?' (quản trị – luôn thấy)':'')})]);
+      }));
+      var mo=el('details',{style:'margin-top:10px'},[el('summary',{style:'cursor:pointer'},[el('b',{text:(c.ma==='BB'?'📋 ':'🗺️ ')+c.ten}),dem]),ds]);
+      return mo;
+    }));
+    var rgBtn=el('button',{class:'p',text:'Lưu',onclick:function(){
+      var gui={};r.dsRieng.forEach(function(c){gui[c.ma]=Object.keys(rgChon[c.ma]).filter(function(t){return rgChon[c.ma][t]})});
+      rgBtn.disabled=true;rgMsg.innerHTML='';
+      call('QT_RIENG',{rieng:gui}).then(function(x){rgBtn.disabled=false;
+        if(x&&x.ok){r.rieng=x.rieng;
+          rgMsg.appendChild(el('div',{class:'ok',text:'Đã lưu. '+r.dsRieng.map(function(c){return c.ten+': '+(x.rieng[c.ma].length?x.rieng[c.ma].join(', '):'chưa chọn ai')}).join('; ')+'. Người được chọn thấy ô mới khi mở lại ứng dụng.'}))}
+        else rgMsg.appendChild(el('div',{class:'bad',text:(x&&x.message)||'Không lưu được.'}));
+      }).catch(function(e){rgBtn.disabled=false;rgMsg.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
+    }});
+    rgCard=el('div',{class:'card'},[el('div',{class:'gt',text:'Chức năng thử nghiệm'}),
+      el('div',{class:'hint',text:'Các ô "Biên bản / báo cáo" và "Bản đồ" đang xây dựng nên mặc định ẩn. Chọn người nào thì người đó mới thấy ô ở trang chủ; quản trị luôn thấy. Bấm vào tên chức năng để mở danh sách.'}),
+      rgBox,el('p',{},[rgBtn]),rgMsg]);
+  }
   var search=el('input',{type:'text',placeholder:'Tìm cán bộ…'}),list=el('div',{});
   function draw(){
     list.innerHTML='';var q=search.value.toLowerCase();
@@ -2327,7 +2380,7 @@ function qtRender(r){
     });
   }
   search.addEventListener('input',draw);draw();
-  show([khCard,exCard,anhCard,yc,el('div',{class:'card'},[el('div',{class:'gt',text:'Cán bộ ('+r.nguoi.length+')'}),
+  show([khCard,exCard,anhCard,rgCard,yc,el('div',{class:'card'},[el('div',{class:'gt',text:'Cán bộ ('+r.nguoi.length+')'}),
     el('div',{class:'hint',text:'Muốn thêm cán bộ mới hoặc đổi họ tên: sửa trực tiếp sheet NGUOI_DUNG (thêm vào dòng trống cuối). Thay đổi quyền có hiệu lực khi người đó mở lại trang.'}),search]),list],boot);
 }
 function qtForm(r,u){
