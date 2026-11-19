@@ -364,7 +364,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='1.4';
+var BAN_APP='1.5';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -2624,26 +2624,34 @@ function luuExcel(tenFile,sheets){
   chiaSeFile(blob,tenFile,'📊');
 }
 /* hỏi Tải về / Gửi (Zalo, email…) cho file vừa tạo; Word thì nhắc cách in */
+/* Sau khi tạo file luôn hiện hộp chọn: bấm "Tải về" là một lần chạm mới của người dùng nên Chrome cho tải
+   (tải tự động sau khi chờ máy chủ vài giây bị Chrome chặn: "Cần có quyền để tải xuống").
+   Chrome trên điện thoại KHÔNG cho chia sẻ trực tiếp file Word/Excel (chỉ ảnh, PDF, văn bản…) → hướng dẫn gửi qua Zalo từ thư mục Tải xuống. */
+var SHARE_DUOC=/\.(pdf|csv|txt|png|jpe?g|webp|gif)$/i;
 function chiaSeFile(blob,tenFile,ic){
   var file=null;try{file=new File([blob],tenFile,{type:blob.type})}catch(e){}
-  var chiaSe=false;try{chiaSe=!!(file&&navigator.canShare&&navigator.canShare({files:[file]}))}catch(e){}
-  if(!chiaSe){taiVeFile(blob,tenFile);return}
-  var word=/\.docx$/i.test(tenFile);
-  var ov=el('div',{class:'xlov',onclick:function(e){if(e.target===ov)ov.remove()}},[el('div',{class:'xlbox'},[
-    el('div',{class:'gt',text:(ic||'📊')+' '+tenFile}),
-    el('button',{class:'p',text:'📥 Tải về máy',onclick:function(){ov.remove();taiVeFile(blob,tenFile)}}),
-    el('div',{style:'height:8px'}),
-    el('button',{class:'s',text:word?'📤 Gửi Zalo / mở bằng Word, WPS để in…':'📤 Gửi qua Zalo, email…',onclick:function(){ov.remove();navigator.share({files:[file],title:tenFile}).catch(function(){})}}),
-    word?el('div',{class:'hint',text:'In: chọn mở bằng Word hoặc WPS Office trên điện thoại → In (máy in Wi-Fi / Mopria).'}):null,
-    el('div',{style:'height:8px'}),
-    el('button',{class:'s',text:'Đóng',onclick:function(){ov.remove()}})])]);
+  var chiaSe=false;try{chiaSe=!!(file&&SHARE_DUOC.test(tenFile)&&navigator.canShare&&navigator.canShare({files:[file]}))}catch(e){}
+  var word=/\.docx$/i.test(tenFile),kq=el('div',{});
+  var nutTai=el('button',{class:'p',text:'📥 Tải về máy',onclick:function(){
+    taiVeFile(blob,tenFile);nutTai.textContent='✅ Đã tải – bấm lại nếu chưa thấy file';
+  }});
+  var con=[el('div',{class:'gt',text:(ic||'📊')+' '+tenFile}),nutTai];
+  if(chiaSe)con.push(el('div',{style:'height:8px'}),el('button',{class:'s',text:'📤 Gửi qua Zalo, email…',onclick:function(){
+    navigator.share({files:[file],title:tenFile}).catch(function(e){if(e&&e.name!=='AbortError')kq.textContent='Không gửi trực tiếp được ('+(e.message||e.name)+'). Hãy tải về rồi gửi.'})}}));
+  con.push(el('div',{class:'hint',style:'margin-top:10px'},[
+    el('div',{text:'Gửi qua Zalo: bấm "Tải về máy", rồi mở cuộc trò chuyện Zalo → bấm 📎 (đính kèm) → Tài liệu/File → thư mục Tải xuống (Download) → chọn file '+tenFile+'.'}),
+    word?el('div',{style:'margin-top:6px',text:'In: mở file vừa tải (thông báo "Đã tải xong" hoặc ứng dụng Tệp → Tải xuống) bằng Word hoặc WPS Office → In (máy in Wi-Fi / Mopria).'}):
+      el('div',{style:'margin-top:6px',text:'Mở file: chạm thông báo "Đã tải xong" hoặc vào ứng dụng Tệp → Tải xuống, mở bằng Excel / WPS / Google Trang tính.'})]),kq);
+  con.push(el('div',{style:'height:8px'}),el('button',{class:'s',text:'Đóng',onclick:function(){ov.remove()}}));
+  var ov=el('div',{class:'xlov',onclick:function(e){if(e.target===ov)ov.remove()}},[el('div',{class:'xlbox'},con)]);
   document.body.appendChild(ov);
 }
 function taiVeFile(blob,ten){
   var u=URL.createObjectURL(blob),a=el('a',{href:u,download:ten});a.style.display='none';
   document.body.appendChild(a);a.click();
-  setTimeout(function(){URL.revokeObjectURL(u);a.remove()},5000);
-  thongBao('Đã tải '+ten+' – xem trong thư mục Tải xuống (Download).',5000);
+  /* để lâu: trình tải xuống của Android đọc file sau một lúc, thu hồi sớm sẽ báo lỗi tải */
+  setTimeout(function(){URL.revokeObjectURL(u);a.remove()},120000);
+  thongBao('Đang tải '+ten+' – xem trong thư mục Tải xuống (Download).',5000);
 }
 /* nút chỉ hiện khi quản trị đã bật cho chức năng đó (⚙️ Quản lý → Nút xuất Excel) */
 function nutExcel(ma,fn){return ME&&ME.excel&&ME.excel[ma]?el('button',{class:'s',text:'📥 Xuất Excel',onclick:fn}):null}
