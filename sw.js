@@ -2,10 +2,10 @@
    1) Lưu sẵn giao diện để ứng dụng mở ngay, kể cả khi mạng yếu. Dữ liệu (script.google.com) không đi qua đây.
    2) Nhận thông báo đẩy (Firebase Cloud Messaging) khi ứng dụng đang đóng, chạm vào thì mở đúng màn hình.
    Tự cập nhật: sửa index.html/config.js trên GitHub là đủ, app tự phát hiện. Chỉ đổi PHIEN_BAN khi thêm/bớt file trong FILES. */
-const PHIEN_BAN = 'qlct-v12';
+const PHIEN_BAN = 'qlct-v13';
 const BO_BAN_DO = 'qlct-bando';   // gói bản đồ nền (thư mục bando/) – giữ qua các lần cập nhật ứng dụng
 const FILES = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
-  'mau/bb_kiem_tra.docx', 'mau/bb_tiep_nhan.docx', 'mau/phu_luc.xlsx', 'bando.js'];   // mẫu biên bản, phụ lục: dùng được khi không có mạng
+  'mau/bb_kiem_tra.docx', 'mau/bb_tiep_nhan.docx', 'mau/phu_luc.xlsx', 'mau/bb_hop_dan.docx', 'bando.js'];   // mẫu biên bản, phụ lục: dùng được khi không có mạng
 
 // ---- thông báo đẩy: đọc cấu hình Firebase trong config.js (file đó ghi window.CAU_HINH) ----
 self.window = self;

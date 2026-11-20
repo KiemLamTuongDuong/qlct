@@ -364,7 +364,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='1.9';
+var BAN_APP='2.0';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -989,12 +989,45 @@ function bbDuLieuTN(f){
     gioKT:gk.h,phutKT:gk.p,soTo:bbV(f.soTo,'01'),soBan:bbV(f.soBan,'03')
   };
 }
+/* ---- mẫu HD: biên bản họp dân / tuyên truyền ---- */
+function bbKyNgang(o){   // o: [{td, ten}] – một hàng ô ký, chia đều bề ngang
+  var n=Math.max(o.length,1),CW=Math.floor(9638/n);
+  var e=function(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')};
+  var p=function(t,b,i,sz,tr,sau){return '<w:p><w:pPr><w:keepNext/><w:spacing w:before="'+(tr||0)+'" w:after="'+(sau||0)+'" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>'+(t?'<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>'+(b?'<w:b/><w:bCs/>':'')+(i?'<w:i/><w:iCs/>':'')+'<w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/></w:rPr><w:t xml:space="preserve">'+e(t)+'</w:t></w:r>':'')+'</w:p>'};
+  var tc=function(noi){return '<w:tc><w:tcPr><w:tcW w:w="'+CW+'" w:type="dxa"/></w:tcPr>'+noi+'</w:tc>'};
+  var g='';for(var i=0;i<n;i++)g+='<w:gridCol w:w="'+CW+'"/>';
+  var h1='',h2='';o.forEach(function(x){h1+=tc(p(x.td,1,0,24,240)+p('(Ký, ghi rõ họ tên)',0,1,24));h2+=tc(p(x.ten,1,0,26,1150,160))});
+  return '<w:tbl><w:tblPr><w:tblW w:w="'+(CW*n)+'" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>'+g+'</w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr>'+h1+'</w:tr><w:tr><w:trPr><w:cantSplit/></w:trPr>'+h2+'</w:tr></w:tbl>';
+}
+function bbChamHD(v,n){v=String(v||'').replace(/\s+$/,'');if(v)return v;var a=[];for(var i=0;i<n;i++)a.push('………………………………………………………………………………………');return a.join('\n')}
+function bbDuLieuHD(f){
+  var n=bbNgay(f.ngay),g=bbGio(f.gio),gk=bbGio(f.gioKT),ban=String(f.ban||'').trim(),xa=String(f.xa||'').trim();
+  var nhom=(f.nhom||[]).map(function(x){
+    var ds=bbCoTen(x.ds).map(function(p){return {xung:String(p.xung||'Ông/Bà').trim(),hoTen:p.hoTen.trim(),chucVu:bbV(p.chucVu)}});
+    var ten=String(x.ten||'').trim();
+    if(ten==='Đại diện UBND xã'&&xa)ten+=' '+xa;
+    if(ten==='Đại diện bản'&&ban)ten+=' '+ban;
+    return {ten:ten,ky:String(x.ky||'').trim().toLocaleUpperCase('vi'),ds:ds};
+  }).filter(function(x){return x.ds.length});
+  var ky=nhom.slice(1).concat(nhom.slice(0,1)).map(function(x){return {td:x.ky||x.ten.toLocaleUpperCase('vi'),ten:x.ds[0].hoTen}});
+  return {
+    TIEU_DE:String(f.tieuDe||'HỌP TUYÊN TRUYỀN').trim().toLocaleUpperCase('vi'),trichYeu:String(f.trichYeu||'').trim(),
+    ban:bbV(ban),xa:bbV(xa),gioTxt:f.gio?'hồi '+g.h+' giờ '+g.p+' phút, ':'',ngayDMY:n.dmy,
+    diaDiem:String(f.diaDiem||'').trim()||('hội trường bản '+bbV(ban)+', xã '+bbV(xa)),
+    nhom:nhom,tongSo:bbV(f.tongSo,'……'),
+    nd1:bbChamHD(f.nd1,3),nd2:bbChamHD(f.nd2,3),nd3:bbChamHD(f.nd3,2),
+    thaoLuan:bbChamHD(f.thaoLuan,1),yKien:bbChamHD(f.yKien,3),traLoi:bbChamHD(f.traLoi,2),
+    ketLuanMo:String(f.ketLuanMo||'').trim(),ketLuan:bbChamHD(f.ketLuan,3),
+    gioKT:f.gioKT?gk.h:'',phutKT:gk.p,khuKy:bbKyNgang(ky)
+  };
+}
 var BB_MAU={
   KT:{ten:'Biên bản kiểm tra / làm việc / ghi nhận',file:'bb_kiem_tra.docx',duLieu:bbDuLieuKT},
-  TN:{ten:'Biên bản bàn giao, tiếp nhận (động vật, thực vật rừng)',file:'bb_tiep_nhan.docx',duLieu:bbDuLieuTN}
+  TN:{ten:'Biên bản bàn giao, tiếp nhận (động vật, thực vật rừng)',file:'bb_tiep_nhan.docx',duLieu:bbDuLieuTN},
+  HD:{ten:'Biên bản họp dân / tuyên truyền',file:'bb_hop_dan.docx',duLieu:bbDuLieuHD}
 };
 function bbTenFile(f){
-  var t=f.mau==='TN'?'BB_ban_giao_tiep_nhan':'BB_'+khongDauTen(f.loai==='KHAC'?(f.tieuDeKhac||'kiem_tra'):(f.loai||'kiem_tra'));
+  var t=f.mau==='HD'?'BB_'+khongDauTen(f.tieuDe||'hop_dan')+(f.ban?'_'+khongDauTen(f.ban):''):f.mau==='TN'?'BB_ban_giao_tiep_nhan':'BB_'+khongDauTen(f.loai==='KHAC'?(f.tieuDeKhac||'kiem_tra'):(f.loai||'kiem_tra'));
   return t+'_'+String(f.ngay||'').replace(/-/g,'')+'.docx';
 }
 function khongDauTen(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').replace(/[^\w]+/g,'_').replace(/^_|_$/g,'').toLowerCase()}
@@ -1094,7 +1127,8 @@ function bbList(body){
   var list=el('div',{},[el('p',{class:'mut',text:'Đang tải…'})]);
   body.appendChild(el('div',{class:'card'},[el('p',{class:'hello',text:'Tạo biên bản mới'}),
     el('button',{class:'p',style:'width:100%;margin-bottom:8px',text:'＋ Biên bản kiểm tra / làm việc / ghi nhận',onclick:function(){bbForm('KT')}}),
-    el('button',{class:'p',style:'width:100%',text:'＋ Biên bản bàn giao, tiếp nhận',onclick:function(){bbForm('TN')}}),
+    el('button',{class:'p',style:'width:100%;margin-bottom:8px',text:'＋ Biên bản bàn giao, tiếp nhận',onclick:function(){bbForm('TN')}}),
+    el('button',{class:'p',style:'width:100%',text:'＋ Biên bản họp dân / tuyên truyền',onclick:function(){bbForm('HD')}}),
     el('div',{class:'hint',text:'File Word được tạo ngay trên máy (không cần mạng). Bấm "Lưu" để giữ lại, sau này mở ra sửa hoặc xuất lại.'})]));
   body.appendChild(el('div',{class:'card'},[el('p',{class:'hello',text:'Biên bản của tôi'}),list]));
   callView('BB_DS',{}).then(function(r){
@@ -1164,6 +1198,7 @@ function bbNhapLuu(){if(!BB_NHAP)return;try{localStorage.setItem(bbNhapKey(BB_NH
 function bbNhapXoa(mau){try{localStorage.removeItem(bbNhapKey(mau))}catch(e){}}
 
 function bbTieuDe(f){
+  if(f.mau==='HD')return 'Biên bản '+String(f.tieuDe||'họp tuyên truyền').toLowerCase()+(f.ban?' – bản '+f.ban:'')+(f.xa?', xã '+f.xa:'');
   if(f.mau==='TN')return 'Biên bản '+String(f.tieuDe||'bàn giao, tiếp nhận').replace(/^./,function(c){return c.toLowerCase()});
   var t=f.loai==='KHAC'?(f.tieuDeKhac||'kiểm tra'):(f.loai||'KIỂM TRA');
   return 'Biên bản '+String(t).toLowerCase()+(f.trichYeu?' '+f.trichYeu:'');
@@ -1177,6 +1212,19 @@ function bbMoi(mau){
     taiSan:[{tenVN:'',dvt:'Cá thể',soLuong:'1'}],hoSo:'Không',mucDich:'chăm sóc, cứu hộ và xử lý theo đúng quy định của pháp luật',
     tnGiao:'Bên giao có trách nhiệm bàn giao đúng cá thể động vật đã phát hiện, phối hợp với cơ quan chức năng khi có yêu cầu cung cấp thông tin',
     tnNhan:'tiếp tục chăm sóc, cứu hộ hoặc bàn giao cho trung tâm cứu hộ để chăm sóc trong quá trình xử lý theo đúng quy định',gioKT:'',soTo:'01',soBan:'03'};
+  if(mau==='HD')return {mau:'HD',tieuDe:'HỌP TUYÊN TRUYỀN',trichYeu:'Về công tác quản lý, bảo vệ rừng và phòng cháy, chữa cháy rừng',ban:'',xa:'Tương Dương',
+    ngay:u.homNay,gio:'',diaDiem:'',
+    nhom:[{ten:'Đại diện '+bbDonVi(),ky:'ĐẠI DIỆN HẠT KIỂM LÂM',ds:[{xung:'Ông',hoTen:u.ten,chucVu:u.chucVu||''}]},
+      {ten:'Đại diện UBND xã',ky:'ĐẠI DIỆN UBND XÃ',ds:[{xung:'Ông',hoTen:'',chucVu:''}]},
+      {ten:'Đại diện bản',ky:'BQL THÔN BẢN',ds:[{xung:'Ông',hoTen:'',chucVu:'Trưởng bản'}]}],
+    tongSo:'',nd1:'',nd2:'',
+    nd3:'Các hộ dân được tuyên truyền, vận động thực hiện nghiêm các quy định về quản lý, bảo vệ rừng và PCCCR; tích cực tham gia bảo vệ diện tích rừng được giao, được khoán; không tiếp tay, bao che cho các hành vi vi phạm pháp luật về lâm nghiệp.',
+    thaoLuan:'Tại cuộc họp, các hộ dân đã trao đổi, thảo luận một số nội dung liên quan đến công tác quản lý, bảo vệ rừng và PCCCR tại địa phương.',
+    yKien:'',
+    traLoi:'Đại diện Hạt Kiểm lâm Tương Dương và chính quyền địa phương đã giải đáp, hướng dẫn các nội dung thuộc thẩm quyền và tiếp thu các ý kiến, kiến nghị của người dân để xem xét, xử lý theo quy định.',
+    ketLuanMo:'Sau khi được tuyên truyền, phổ biến, các hộ dân tham dự cuộc họp thống nhất:',
+    ketLuan:'1. Chấp hành nghiêm các quy định của pháp luật về quản lý, bảo vệ và phát triển rừng.\n2. Không chặt phá, khai thác rừng, lấn chiếm đất rừng và thực hiện các hành vi vi phạm pháp luật về lâm nghiệp.\n3. Thực hiện nghiêm các quy định về phòng cháy, chữa cháy rừng; chủ động phòng ngừa cháy rừng.\n4. Khi phát hiện cháy rừng hoặc hành vi vi phạm pháp luật về lâm nghiệp, kịp thời báo cho chính quyền địa phương hoặc lực lượng Kiểm lâm.\n5. Tích cực phối hợp với lực lượng chức năng trong công tác tuần tra, bảo vệ rừng và PCCCR.',
+    gioKT:''};
   return {mau:'KT',coQuan1:BB_CQ1,coQuan2:bbDonVi().toLocaleUpperCase('vi'),loai:'KIỂM TRA',tieuDeKhac:'',hd:'kiểm tra',trichYeu:'',
     ngay:u.homNay,gio:'',diaDiem:'',tp:[me],lap:0,dt:{},ck:{xung:'ông'},noiDung:'',ketLuan:'',gioKT:'',ngayKT:'',soBan:'03'};
 }
@@ -1238,6 +1286,37 @@ function bbForm(mau,rec,f0){
         bbHang([bbO(f,'gioKT','Giờ kết thúc',{type:'time'}),bbO(f,'ngayKT','Ngày kết thúc',{type:'date'})]),
         el('div',{class:'hint',text:'Ngày kết thúc để trống = cùng ngày lập.'}),
         bbO(f,'soBan','Số bản',{ph:'03'}).w]));
+  }else if(mau==='HD'){
+    if(!Array.isArray(f.nhom))f.nhom=[];
+    var NGH=[{k:'xung',label:'Ông/Bà',ph:'Ông',chinh:1},{k:'hoTen',label:'Họ và tên',list:'bbNguoi',chinh:1},{k:'chucVu',label:'Chức vụ',chinh:1}];
+    var dienHD=function(x,v,capNhat){var n=timNguoi(v);if(n){x.chucVu=n.cv||x.chucVu;capNhat()}};
+    con.push(el('div',{class:'card'},[
+      bbO(f,'tieuDe','Tiêu đề (sau chữ "BIÊN BẢN")',{list:'bbTdHD'}).w,
+      el('datalist',{id:'bbTdHD'},['HỌP TUYÊN TRUYỀN','HỌP DÂN','HỘI NGHỊ TUYÊN TRUYỀN PHÁP LUẬT'].map(function(v){return el('option',{value:v})})),
+      bbO(f,'trichYeu','Dòng dưới tiêu đề (không bắt buộc)').w,
+      bbHang([bbO(f,'ban','Bản'),bbO(f,'xa','Xã')]),
+      bbHang([bbO(f,'ngay','Ngày',{type:'date'}),bbO(f,'gio','Giờ (không bắt buộc)',{type:'time'})]),
+      bbO(f,'diaDiem','Địa điểm',{ph:'Để trống = hội trường bản …, xã …'}).w]));
+    f.nhom.forEach(function(g,i){
+      if(!Array.isArray(g.ds))g.ds=[];
+      con.push(bbNhom('I.'+(i+1)+' '+(g.ten||'Thành phần'),'Người đầu tiên của mục này ký ở ô "'+(g.ky||'')+'". Mục không có ai thì không in, không có ô ký.',[
+        bbHang([bbO(g,'ten','Tên mục'),bbO(g,'ky','Chữ ở ô ký')]),
+        bbDs(g.ds,NGH,'Thêm người',function(){return {xung:'Ông',hoTen:'',chucVu:''}},dienHD)],true));
+    });
+    con.push(el('div',{class:'card'},[
+      bbO(f,'tongSo','Tổng số người tham dự',{ph:'để trống thì in "……" để ghi tay'}).w,
+      el('div',{class:'gt',text:'II. Nội dung tuyên truyền'}),
+      bbO(f,'nd1','1. Về công tác quản lý, bảo vệ rừng',{rows:4,ph:'Mỗi dòng một đoạn. Để trống thì in dòng chấm.'}).w,
+      bbO(f,'nd2','2. Về công tác phòng cháy, chữa cháy rừng',{rows:4,ph:'Để trống thì in dòng chấm.'}).w,
+      bbO(f,'nd3','3. Trách nhiệm của người dân',{rows:3}).w,
+      el('div',{class:'gt',text:'III. Ý kiến trao đổi, thảo luận'}),
+      bbO(f,'thaoLuan','1. Ý kiến thảo luận (câu mở đầu)',{rows:2}).w,
+      bbO(f,'yKien','Các ý kiến chủ yếu tập trung vào',{rows:4,ph:'Mỗi dòng một ý. Để trống thì in dòng chấm.'}).w,
+      bbO(f,'traLoi','2. UBND xã, Hạt Kiểm lâm tiếp thu, trả lời',{rows:3}).w,
+      el('div',{class:'gt',text:'IV. Kết luận cuộc họp'}),
+      bbO(f,'ketLuanMo','Câu mở đầu',{rows:2}).w,
+      bbO(f,'ketLuan','Các nội dung thống nhất (mỗi dòng một ý)',{rows:6}).w,
+      bbO(f,'gioKT','Giờ kết thúc (không bắt buộc)',{type:'time'}).w]));
   }else{
     if(!Array.isArray(f.benGiao))f.benGiao=[];if(!Array.isArray(f.benNhan))f.benNhan=[];if(!Array.isArray(f.chungKien))f.chungKien=[];if(!Array.isArray(f.taiSan))f.taiSan=[];
     var NG=[{k:'hoTen',label:'Họ và tên',list:'bbNguoi',chinh:1},{k:'chucVu',label:'Chức vụ',chinh:1},{k:'coQuan',label:'Cơ quan, đơn vị',chinh:1},
