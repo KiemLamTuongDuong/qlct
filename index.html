@@ -309,7 +309,7 @@ function thongBao(t,ms){var x=el('div',{class:'toast',text:t});document.body.app
 function moTaMuc(x){
   var p=x.params,ng=(p.ngay||[]).map(fmtVN).join(', ');
   if(x.action==='NK_LUU')return (p.hd||'Nhật ký')+' · '+ng+' · '+(p.buoi||'')+(Array.isArray(p.nhap)&&p.nhap.length?' · cho: '+p.nhap.join(', '):(p.nhap?' · cho: '+p.nhap:''))+(p.dd?' · 📍 '+p.dd:'');
-  return 'Chuyên môn: "'+(p.nd||'')+'" · '+ng+' · '+(p.buoi||'');
+  return 'Chuyên môn: "'+(p.hd||p.nd||'')+'" · '+ng+' · '+(p.buoi||'');
 }
 /* gửi lần lượt các mục chờ; mục bị máy chủ từ chối (trùng buổi…) giữ lại kèm lỗi để người dùng xử lý */
 function dongBo(cb){
@@ -364,7 +364,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='2.1';
+var BAN_APP='2.2';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -2981,17 +2981,17 @@ function xuatLich(r){
 }
 function xuatChuyenMon(r){
   var p=r.thang.split('-');
-  var L=xlLuoi(r,r.nguoi,14,'HOẠT ĐỘNG CHUYÊN MÔN THÁNG '+p[1]+'/'+p[0],'',true);
-  L.rows.push([]);L.rows.push([{v:'Mỗi người mỗi buổi chỉ có một hoạt động chuyên môn; buổi đã có người đăng ký thì chỉ người đăng ký đầu tiên (hoặc quản trị) sửa được.',s:5}]);
+  var L=xlLuoi(r,r.nguoi,7,'HOẠT ĐỘNG CHUYÊN MÔN THÁNG '+p[1]+'/'+p[0],'');
+  xlBangMa(L,{chuThich:cmMaDung(r).map(function(x){return {code:x.code,name:x.name||'(nội dung cũ ghi tay)'}})},'Hai mã nối bằng dấu / là buổi sáng / buổi chiều. Mỗi người mỗi buổi chỉ có một hoạt động chuyên môn; buổi đã có người đăng ký thì chỉ người đăng ký đầu tiên (hoặc quản trị) sửa được.');
   xlCuoi(L.rows);
-  var rows=[],mg=[],H=['STT','Ngày','Buổi','Nội dung hoạt động chuyên môn','Người đăng ký','Cùng tham gia'];
+  var rows=[],mg=[],H=['STT','Ngày','Buổi','Hoạt động chuyên môn','Mã','Ghi chú','Người đăng ký','Cùng tham gia'];
   xlDau(rows,mg,H.length,'CHI TIẾT HOẠT ĐỘNG CHUYÊN MÔN THÁNG '+p[1]+'/'+p[0],'');
   rows.push(xlHead(H));
-  xlSapNgay(r.muc).forEach(function(x,i){rows.push([{v:i+1,s:7},{v:fmtVN(x.ngay),s:7},{v:x.buoi,s:7},x.nd||'',x.nhap,(x.cung||[]).join(', ')])});
+  xlSapNgay(r.muc).forEach(function(x,i){rows.push([{v:i+1,s:7},{v:fmtVN(x.ngay),s:7},{v:x.buoi,s:7},x.nd||'',{v:x.code||'',s:15},x.gc||'',x.nhap,(x.cung||[]).join(', ')])});
   xlCuoi(rows);
   luuExcel('ChuyenMon_'+r.thang+'.xlsx',[
     {ten:'Lịch tháng '+p[1]+'-'+p[0],cols:L.cols,rows:L.rows,merges:L.merges,freeze:{r:6,c:1},ngang:true},
-    {ten:'Chi tiết',cols:[6,12,9,50,24,30],rows:rows,merges:mg,freeze:{r:5},ngang:true}]);
+    {ten:'Chi tiết',cols:[6,12,9,40,9,34,24,30],rows:rows,merges:mg,freeze:{r:5},ngang:true}]);
 }
 
 /* ---- Báo cáo ---- */
@@ -3053,8 +3053,9 @@ function cmLoad(){
   }).catch(function(e){show([msgCard('Lỗi: '+errMsg(e),true,[retry(cmLoad)])],boot)});
 }
 function cmItem(x,r){
-  var kids=[el('div',{class:'top'},[el('div',{class:'hd',text:x.nd}),el('div',{class:'mut',text:fmtVN(x.ngay)+' · '+x.buoi})]),
+  var kids=[el('div',{class:'top'},[el('div',{class:'hd',text:x.nd+(x.code?' ('+x.code+')':'')}),el('div',{class:'mut',text:fmtVN(x.ngay)+' · '+x.buoi})]),
     el('div',{class:'mut',text:'Người đăng ký: '+x.nhap+(x.cung.length?' · Cùng: '+x.cung.join(', '):'')})];
+  if(x.gc)kids.push(el('div',{text:'📝 '+x.gc}));
   if(x.sua)kids.push(el('div',{class:'btns'},[
     el('button',{class:'s',text:'Sửa',onclick:function(){cmForm(r,x)}}),
     el('button',{class:'d',text:'Xóa',onclick:function(){
@@ -3071,15 +3072,21 @@ function cmRender(r){
   var nodes=[el('div',{class:'card'},[el('div',{class:'lnav'},[prev,mi,next]),
     el('p',{},[el('button',{class:'p',text:'Đăng ký hoạt động chuyên môn',onclick:function(){cmForm(r,null,{})}}),' ',nutExcel('CM',function(){xuatChuyenMon(r)})]),
     r.canhBao?el('div',{class:'hint',text:r.canhBao}):null])];
-  var tb=el('table',{class:'hat cmt'}),h1=el('tr',{}),h2=el('tr',{}),wd=['CN','T2','T3','T4','T5','T6','T7'];
+  var tb=el('table',{class:'hat'}),h1=el('tr',{}),h2=el('tr',{}),wd=['CN','T2','T3','T4','T5','T6','T7'];
+  var tenMa={};(r.hoatDong||[]).forEach(function(h){tenMa[h.code]=h.name});
+  var tieuDeO=function(t){return lichCodes(t).codes.map(function(c){return c+(tenMa[c]?' = '+tenMa[c]:'')}).join('\n')};
   h1.appendChild(el('th',{class:'nm',text:'Cán bộ'}));h2.appendChild(el('th',{class:'nm',text:''}));
   for(var d=1;d<=r.soNgay;d++){var dow=(r.thuDau+d-1)%7,we=dow===0||dow===6;h1.appendChild(el('th',{class:we?'we':'',text:String(d)}));h2.appendChild(el('th',{class:we?'we':'',text:wd[dow]}))}
   tb.appendChild(h1);tb.appendChild(h2);
   r.nguoi.forEach(function(p){var row=el('tr',{class:p.ten===r.ten?'me':''});row.appendChild(el('td',{class:'nm',text:p.ten}));
     p.o.forEach(function(t,i){var dow=(r.thuDau+i)%7,on=CM.ten===p.ten&&CM.ngay===i+1;
-      row.appendChild(el('td',{class:((dow===0||dow===6)?'we ':'')+(on?'on':''),title:t,text:t,onclick:function(){CM.ten=p.ten;CM.ngay=i+1;cmRender(r)}}))});
+      row.appendChild(el('td',{class:((dow===0||dow===6)?'we ':'')+(on?'on':''),title:tieuDeO(t),text:t,onclick:function(){CM.ten=p.ten;CM.ngay=i+1;cmRender(r)}}))});
     tb.appendChild(row)});
   nodes.push(el('div',{class:'hatw'},[tb]));
+  var maDung=cmMaDung(r);
+  if(maDung.length)nodes.push(el('div',{class:'card'},[el('div',{class:'hint',text:'Bảng mã:'}),
+    el('div',{class:'mut'},maDung.map(function(x){return el('span',{class:'cd',text:x.code+(x.name?' = '+x.name:'')})})),
+    el('div',{class:'hint',text:'Hai mã nối bằng dấu / là buổi sáng / buổi chiều.'})]));
   if(CM.ngay&&CM.ten){
     var ds=r.thang+'-'+pad(CM.ngay),ten=CM.ten;
     var items=r.muc.filter(function(x){return x.ngay===ds&&x.ds.indexOf(ten)>=0});
@@ -3090,6 +3097,12 @@ function cmRender(r){
     nodes.push(el('div',{class:'card'},det));
   }else nodes.push(el('div',{class:'hint',text:'Chạm vào một ô để xem chi tiết, sửa hoặc xóa. Mỗi người mỗi buổi chỉ có một hoạt động chuyên môn; buổi đã có người đăng ký thì chỉ người đăng ký đầu tiên (hoặc quản trị) sửa được.'}));
   show(nodes,boot);
+}
+/* các mã đang có trong bảng tháng (để làm bảng mã) */
+function cmMaDung(r){
+  var tenMa={},co={},out=[];(r.hoatDong||[]).forEach(function(h){tenMa[h.code]=h.name});
+  r.nguoi.forEach(function(p){p.o.forEach(function(t){lichCodes(t).codes.forEach(function(c){if(!co[c]){co[c]=1;out.push({code:c,name:tenMa[c]||''})}})})});
+  return out.filter(function(x){return x.name}).concat(out.filter(function(x){return !x.name}));
 }
 function cmForm(r,edit,preset){
   preset=preset||{};
@@ -3105,8 +3118,14 @@ function cmForm(r,edit,preset){
     lb.addEventListener('click',function(){buoi=b;Array.prototype.forEach.call(seg.children,function(x){x.className=''});lb.className='on'});
     seg.appendChild(lb);
   });
-  var nd=el('input',{type:'text',maxlength:String(r.maxLen),placeholder:'Nội dung ngắn (tối đa '+r.maxLen+' ký tự)'});if(edit)nd.value=edit.nd;
-  var dem=el('div',{class:'hint'});var upd=function(){dem.textContent=nd.value.length+' / '+r.maxLen+' ký tự'};nd.addEventListener('input',upd);upd();
+  /* nội dung = chọn hoạt động trong danh sách (như nhật ký); bảng tháng chỉ hiện mã */
+  var nd=el('select',{},[el('option',{value:'',text:'— Chọn hoạt động —'})].concat((r.hoatDong||[]).map(function(h){return el('option',{value:h.name,text:h.name+' ('+h.code+')'})})));
+  if(edit){
+    if(!(r.hoatDong||[]).some(function(h){return h.name===edit.nd}))nd.appendChild(el('option',{value:edit.nd,text:edit.nd+' (nội dung cũ, ghi tay)'}));
+    nd.value=edit.nd;
+  }
+  var gc=el('input',{type:'text',maxlength:String(r.maxGc||200),placeholder:'Ghi chú thêm (không bắt buộc, không hiện trong bảng)'});if(edit)gc.value=edit.gc||'';
+  var dem=el('div',{class:'hint',text:'Bảng tháng chỉ hiện mã hoạt động; tên hoạt động và ghi chú xem khi chạm vào ô.'});
   var owner=null;
   if(r.quanTri){owner=el('select',{},r.nguoi.map(function(p){return el('option',{value:p.ten,text:p.ten})}));owner.value=edit?edit.nhap:(preset.nhap||r.ten)}
   var chosen={};(edit?edit.cung:(preset.cung||[])).forEach(function(n){chosen[n]=true});
@@ -3115,9 +3134,9 @@ function cmForm(r,edit,preset){
   var btn=el('button',{class:'p',text:lbl,onclick:function(){
     var ks=Object.keys(sel).sort();
     if(!ks.length){alert('Vui lòng chọn ngày.');return}
-    if(!nd.value.trim()){alert('Vui lòng nhập nội dung.');return}
-    var p={ngay:ks,buoi:buoi,cung:Object.keys(chosen),nd:nd.value};
-    if(edit)p.ma=edit.ma;if(owner)p.nhap=owner.value;
+    if(!nd.value){alert('Vui lòng chọn hoạt động.');return}
+    var p={ngay:ks,buoi:buoi,cung:Object.keys(chosen),hd:nd.value,gc:gc.value.trim()};
+    if(edit){p.ma=edit.ma;p.hdCu=edit.nd}if(owner)p.nhap=owner.value;
     msg.innerHTML='';btn.disabled=true;btn.textContent='Đang lưu…';
     call('CM_LUU',p).then(function(x){
       btn.disabled=false;btn.textContent=lbl;
@@ -3132,7 +3151,8 @@ function cmForm(r,edit,preset){
   }});
   var nodes=[el('p',{class:'hello',text:edit?'Sửa hoạt động chuyên môn':'Đăng ký hoạt động chuyên môn'})];
   if(owner)nodes.push(el('label',{class:'l',text:'Người đăng ký (quản trị chọn được người khác)'}),owner);
-  nodes.push(el('label',{class:'l'},['Nội dung ',el('i',{text:'*'})]),nd,dem,
+  nodes.push(el('label',{class:'l'},['Hoạt động ',el('i',{text:'*'})]),nd,dem,
+    el('label',{class:'l',text:'Ghi chú'}),gc,
     el('label',{class:'l'},[edit?'Ngày ':'Ngày (chọn một hoặc nhiều ngày) ',el('i',{text:'*'})]),cal,selBox,
     el('label',{class:'l',text:'Buổi'}),seg,
     el('label',{class:'l'},[el('span',{text:'Cán bộ tham gia cùng'}),el('span',{class:'mut',text:'  (không cần chọn người đăng ký)'})]),pk.search,pk.box);
