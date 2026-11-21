@@ -366,16 +366,54 @@ function hopLop(ds){var b=[1e18,1e18,-1e18,-1e18],add=function(a){for(var i=0;i<
   return b[0]<1e17?b:null}
 
 /* ---------- 6. GPS ---------- */
-var GPS={},GPS_ID=null;
+var GPS={},GPS_ID=null,GPS_NGHE=[];
+/* Nhiều màn hình cùng nghe GPS: cb trả false thì thôi nghe; không còn ai nghe thì tắt GPS.
+   - maximumAge 0: luôn lấy vị trí mới, không dùng vị trí cũ trong bộ nhớ.
+   - Bỏ qua điểm kém hơn hẳn điểm vừa có (<15 giây): thường là vị trí ước tính từ trạm điện thoại/Wi-Fi chen vào. */
 function batGps(cb){
-  if(!navigator.geolocation){GPS.loi='Máy không hỗ trợ định vị.';cb&&cb();return}
+  if(cb)GPS_NGHE.push(cb);
+  if(!navigator.geolocation){GPS.loi='Máy không hỗ trợ định vị.';baoGps();return}
   if(GPS_ID!==null)return;
   GPS_ID=navigator.geolocation.watchPosition(function(p){
-    var v=w2v(p.coords.latitude,p.coords.longitude,ktt());GPS={e:v[0],n:v[1],lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy||0,t:Date.now()};cb&&cb();
-  },function(e){GPS.loi=e.code===1?'Chưa cho phép ứng dụng dùng vị trí (bấm biểu tượng ổ khóa cạnh địa chỉ → Vị trí → Cho phép).':'Chưa bắt được GPS ('+e.message+').';cb&&cb()},
-  {enableHighAccuracy:true,maximumAge:5000,timeout:30000});
+    var c=p.coords,acc=c.accuracy||9999,now=Date.now();
+    if(GPS.e&&now-GPS.t<15000&&acc>Math.max(30,GPS.acc*3))return;
+    var v=w2v(c.latitude,c.longitude,ktt());
+    GPS={e:v[0],n:v[1],lat:c.latitude,lon:c.longitude,acc:acc,h:c.altitude,t:now,tot:Math.min(acc,GPS.tot||9999),dau:GPS.dau||now};
+    baoGps();
+  },function(e){GPS.loi=e.code===1?'Chưa cho phép ứng dụng dùng vị trí (bấm biểu tượng ổ khóa cạnh địa chỉ → Vị trí → Cho phép).':'Chưa bắt được GPS ('+e.message+'). Ra chỗ thoáng, chờ thêm.';baoGps()},
+  {enableHighAccuracy:true,maximumAge:0,timeout:60000});
 }
-function tatGps(){if(GPS_ID!==null){navigator.geolocation.clearWatch(GPS_ID);GPS_ID=null}}
+function baoGps(){GPS_NGHE=GPS_NGHE.filter(function(f){try{return f(GPS)!==false}catch(e){return false}});if(!GPS_NGHE.length)tatGps()}
+function tatGps(){GPS_NGHE=[];if(GPS_ID!==null){navigator.geolocation.clearWatch(GPS_ID);GPS_ID=null}GPS={}}
+var HD_GPS='Cách để GPS chính xác hơn:\n\n'+
+  '1. Cho Chrome dùng vị trí CHÍNH XÁC (quan trọng nhất): Cài đặt điện thoại → Ứng dụng → Chrome → Quyền → Vị trí → "Cho phép khi dùng ứng dụng" và BẬT "Dùng vị trí chính xác". Nếu chỉ cho vị trí gần đúng, sai số 1–3 km.\n\n'+
+  '2. Bật độ chính xác của Google: Cài đặt → Vị trí → Dịch vụ vị trí → "Độ chính xác vị trí của Google" → Bật.\n\n'+
+  '3. Mở bản đồ ở chỗ thoáng (đầu đồi, khoảng trống) và chờ 1–2 phút cho máy bắt đủ vệ tinh trước khi vào rừng. Dưới tán rừng dày, khe suối sâu sai số thường 10–30 m.\n\n'+
+  '4. Cần tọa độ một điểm (vị trí vi phạm…): đứng yên, bấm "🎯 Đo điểm" và chờ 30–60 giây – ứng dụng lấy trung bình nhiều lần đo.\n\n'+
+  'Ứng dụng web dùng chung GPS của điện thoại như vTools, nên lúc mới mở sẽ kém hơn vTools đang chạy liên tục; chờ một lúc sẽ tốt dần.';
+/* Đo một điểm: đứng yên, lấy trung bình có trọng số (1/sai số²) các lần đo tốt trong khoảng thời gian chờ */
+function doDiem(xong){
+  var ds=[],t0=Date.now(),dung=false,kq=null;
+  var tt=el('div',{style:'font-size:18px;margin:8px 0'}),ct=el('div',{class:'hint'}),nut=el('button',{class:'p',text:'✔ Dùng điểm này'});nut.disabled=true;
+  var ov=el('div',{class:'xlov'},[el('div',{class:'xlbox'},[el('div',{class:'gt',text:'🎯 Đo tọa độ điểm'}),
+    el('div',{class:'hint',text:'Đứng yên tại điểm cần đo, để điện thoại thoáng trời. Chờ 30–60 giây cho số lần đo tăng và sai số giảm, rồi bấm "Dùng điểm này".'}),
+    tt,ct,nut,el('div',{style:'height:8px'}),el('button',{class:'s',text:'Hủy',onclick:function(){dung=true;ov.remove()}})])]);
+  document.body.appendChild(ov);
+  var tinh=function(){
+    if(!ds.length){tt.textContent=GPS.loi||'Đang chờ GPS…';return}
+    var tot=Math.min.apply(null,ds.map(function(d){return d.acc})),gh=Math.max(15,tot*2),dung2=ds.filter(function(d){return d.acc<=gh});
+    var sw=0,se=0,sn=0;dung2.forEach(function(d){var w=1/(d.acc*d.acc);sw+=w;se+=d.e*w;sn+=d.n*w});
+    var e=se/sw,n=sn/sw,ss=Math.max(2,1/Math.sqrt(sw));
+    kq={e:e,n:n,acc:ss,so:dung2.length};
+    tt.innerHTML='';tt.appendChild(el('b',{text:'X = '+so(n,1)+'   Y = '+so(e,1)}));
+    ct.textContent='Đã đo '+ds.length+' lần ('+Math.round((Date.now()-t0)/1000)+' giây), dùng '+dung2.length+' lần tốt · sai số lần đo tốt nhất ±'+Math.round(tot)+' m · ước tính điểm trung bình ±'+Math.round(ss)+' m';
+    nut.disabled=false;
+  };
+  nut.onclick=function(){dung=true;ov.remove();if(kq)xong(kq)};
+  batGps(function(g){if(dung||!document.body.contains(ov))return false;
+    if(g.e&&g.t>=t0&&!ds.some(function(d){return d.t===g.t}))ds.push({e:g.e,n:g.n,acc:g.acc,t:g.t});tinh()});
+  tinh();
+}
 
 /* ---------- 7. CỬ CHỈ: kéo, chụm 2 ngón, lăn chuột, chạm ---------- */
 function cuChi(cv,cb){
@@ -428,6 +466,7 @@ function manXem(){
     onchange:function(){var fs=[].slice.call(oFile.files);oFile.value='';nhapFile(fs,function(){ve();veDsLop();vuaKhung()})}});
   var bar=el('div',{class:'bdbar'},[sel,
     el('button',{class:'s',text:'📍',title:'Về vị trí của tôi',onclick:function(){if(GPS.e){V.cx=GPS.e;V.cy=GPS.n;if(V.s<0.5)V.s=1;ve();luuXem()}else thongBao(GPS.loi||'Đang chờ GPS…',3000)}}),
+    el('button',{class:'s',text:'🎯 Đo điểm',onclick:function(){doDiem(function(k){cham={e:k.e,n:k.n,acc:k.acc,so:k.so};V.cx=k.e;V.cy=k.n;if(V.s<1)V.s=2;ve();luuXem();themDiemDo(k)})}}),
     el('button',{class:'s',text:'➕ Nhập file',onclick:function(){oFile.click()}}),
     el('button',{class:'p',text:'🖨️ Biên tập & in',onclick:manBienTap}),nutLamMoi(function(){S.xem=null;manXem()}),oFile]);
   var dsLop=el('div',{class:'bdlop'});
@@ -448,10 +487,12 @@ function manXem(){
   function veInfo(){
     var kq=[];
     if(GPS.e){kq.push(el('div',{},[el('b',{text:'📍 Vị trí của tôi: '}),'X = '+so(GPS.n,1)+'  Y = '+so(GPS.e,1)+' (±'+Math.round(GPS.acc)+' m)']));
+      if(GPS.acc>30)kq.push(el('div',{class:'mut',style:'color:#a05a00'},[GPS.acc>=500?'⚠️ Sai số rất lớn – có thể Chrome chỉ được dùng vị trí gần đúng. ':'⚠️ GPS chưa ổn định, chờ thêm hoặc ra chỗ thoáng. ',
+        el('span',{class:'link',text:'Cách khắc phục',onclick:function(){alert(HD_GPS)}})]));
       var l=loTai(GPS.e,GPS.n);if(l)kq.push(el('div',{class:'mut',text:'Đang đứng ở: TK '+l.tt[0]+', khoảnh '+l.tt[1]+', lô '+l.tt[2]+(l.tt[3]?' – '+l.tt[3]:'')+(l.tt[4]!=null?' ('+soVN(l.tt[4],2)+' ha)':'')}))}
     else kq.push(el('div',{class:'mut',text:GPS.loi||'Đang bắt GPS…'}));
     if(cham){var ll=v2w(cham.e,cham.n,ktt()),l2=loTai(cham.e,cham.n);
-      kq.push(el('div',{},[el('b',{text:'✛ Điểm chạm: ',style:'color:#d00'}),'X = '+so(cham.n,1)+'  Y = '+so(cham.e,1)]),
+      kq.push(el('div',{},[el('b',{text:cham.so?'🎯 Điểm đo: ':'✛ Điểm chạm: ',style:'color:#d00'}),'X = '+so(cham.n,1)+'  Y = '+so(cham.e,1)+(cham.so?' (±'+Math.round(cham.acc)+' m, '+cham.so+' lần đo)':'')]),
         el('div',{class:'mut',text:'WGS84: '+ll[0].toFixed(6)+', '+ll[1].toFixed(6)+(l2?' · TK '+l2.tt[0]+', khoảnh '+l2.tt[1]+', lô '+l2.tt[2]+(l2.tt[3]?' – '+l2.tt[3]:'')+(l2.tt[4]!=null?' ('+soVN(l2.tt[4],2)+' ha)':''):'')}))}
     kq.push(el('div',{class:'mut',text:'VN-2000 múi 3°, KTT '+kttChu(ktt())+(GOI?' · '+GOI.g.ten:'')+' · Vị trí của bạn chỉ hiện trên màn hình, không đưa vào bản in.'}));
     info.innerHTML='';kq.forEach(function(x){info.appendChild(x)});
@@ -480,13 +521,20 @@ function manXem(){
     xong:function(){ve();luuXem()},
     cham:function(x,y){cham={e:V.cx+(x-cv.width/2)/V.s,n:V.cy-(y-cv.height/2)/V.s};ve()}});
   window.addEventListener('resize',function rs(){if(!document.body.contains(cv)){window.removeEventListener('resize',rs);return}coKhung();ve()});
-  batGps(function(){if(!document.body.contains(cv)){tatGps();return}ve()});
+  batGps(function(){if(!document.body.contains(cv))return false;ve()});
+  BD._xemLai=function(){if(document.body.contains(cv)){veDsLop();ve()}};
   if(!V||!V.s)vuaKhung();
   veDsLop();ve();
 }
 function nutLamMoi(sau){return el('button',{class:'d',text:'🔄 Làm sơ đồ mới',onclick:function(){
   if(!confirm('Bắt đầu sơ đồ mới?\n\nSẽ xóa: các đường/vùng/điểm đã nhập, chữ ghi trên bản đồ, tiêu đề, thành phần tham gia.\nGiữ lại: bản đồ nền, khổ giấy và các tùy chọn hiển thị.\n\nNên xuất PDF/ảnh sơ đồ hiện tại trước nếu cần. (Tắt hẳn ứng dụng rồi mở lại cũng tự bắt đầu sơ đồ mới.)'))return;
   lamMoi();thongBao('Đã bắt đầu sơ đồ mới.',2500);sau()}})}
+function themDiemDo(k){
+  setTimeout(function(){var ten=prompt('Đã đo: X = '+so(k.n,1)+', Y = '+so(k.e,1)+' (±'+Math.round(k.acc)+' m).\n\nĐưa điểm này vào bản đồ? Nhập tên điểm (để trống / Hủy: không đưa vào):','Điểm đo');
+    if(!ten||!ten.trim())return;var h=new Date(),d=h.getFullYear()+'-'+('0'+(h.getMonth()+1)).slice(-2)+'-'+('0'+h.getDate()).slice(-2);
+    var L=themLop({ten:ten.trim(),loai:'diem',ds:[[Math.round(k.e*10)/10,Math.round(k.n*10)/10]],ngay:[d,d]});L.cg=ten.trim();luu(1);
+    if(BD._xemLai)BD._xemLai()},300);
+}
 function ngayChu(n){if(!n)return '';var a=n[0].split('-'),b=n[1].split('-');
   if(n[0]===n[1])return a[2]+'/'+a[1]+'/'+a[0];
   if(a[0]===b[0]&&a[1]===b[1])return a[2]+'-'+b[2]+'/'+a[1]+'/'+a[0];
@@ -783,7 +831,7 @@ function manBienTap(){
     cham:function(x,y){var c=chuTai(x,y);if(!c)return;var t=prompt('Sửa chữ (để trống để xóa):',c.t);if(t===null)return;
       if(!t.trim())S.chu.splice(S.chu.indexOf(c),1);else c.t=t;doi()}});
   window.addEventListener('resize',function rs(){if(!document.body.contains(cv)){window.removeEventListener('resize',rs);return}coKhung();ve()});
-  batGps(function(){if(!document.body.contains(cv))return;veNhanh()});
+  batGps(function(){if(!document.body.contains(cv))return false;veNhanh()});
   function xuat(kieu,nut){
     var cu=nut.textContent;nut.disabled=true;nut.textContent='Đang tạo…';
     setTimeout(function(){
@@ -816,6 +864,6 @@ function pdfTuJpg(jpg,w,h,wmm,hmm){
   add(x+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF\n');
   return new Blob(parts,{type:'application/pdf'});
 }
-BD._t={veTrang:veTrang,boCuc:boCuc,giaiMa:giaiMa,docGpx:docGpx,docKml:docKml,docGeoJson:docGeoJson,docMif:docMif,themLop:themLop,tuDien:tuDien,vuaTrang:vuaTrang,
+BD._t={gps:function(){return {GPS:GPS,dangBat:GPS_ID!==null,soNghe:GPS_NGHE.length}},veTrang:veTrang,boCuc:boCuc,giaiMa:giaiMa,docGpx:docGpx,docKml:docKml,docGeoJson:docGeoJson,docMif:docMif,themLop:themLop,tuDien:tuDien,vuaTrang:vuaTrang,
   S:function(){return S},datGoi:function(g){GOI=giaiMa(g)},nap:nap,pdfTuJpg:pdfTuJpg,loTai:loTai,manBienTap:function(){manBienTap()},manXem:function(){manXem()}};
 })();
