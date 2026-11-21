@@ -364,7 +364,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='2.0';
+var BAN_APP='2.1';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -1487,6 +1487,9 @@ function nkForm(body,edit,preset){
   var hdSel=el('select',{},[el('option',{value:'',text:'— Chọn hoạt động —'})]);
   CFG.hoatDong.forEach(function(h,i){hdSel.appendChild(el('option',{value:String(i),text:h.name}))});
   var nd=el('textarea',{rows:'2',placeholder:'Nội dung công việc (không bắt buộc)'});
+  /* người tham gia ngoài danh sách cán bộ (trưởng bản, công an xã, chủ rừng…): mỗi người một dòng */
+  var khacTa=el('textarea',{rows:'3',placeholder:'Mỗi người một dòng, ví dụ:\nÔng Lô Văn A – Trưởng bản Xốp Pột\nBà Vi Thị B – Công an xã'});
+  khacTa.value=((edit?edit.khac:preset.khac)||[]).join('\n');
   /* Địa điểm = chọn xã + ghi cụ thể (bản, tiểu khu…). Lưu dạng "ghi cụ thể, Xã". */
   var ddXa=el('select',{},[el('option',{value:'',text:'— Không chọn xã —'})].concat((CFG.xa||[]).map(function(x){return el('option',{value:x,text:x})})));
   var ddTxt=el('input',{type:'text',placeholder:'Ghi cụ thể: bản, tiểu khu, cơ quan… (không bắt buộc)'});
@@ -1632,6 +1635,7 @@ function nkForm(body,edit,preset){
     Array.prototype.forEach.call(fieldBox.querySelectorAll('[data-k]'),function(i){f[i.getAttribute('data-k')]=i.value});
     var cung=Object.keys(chosen).filter(function(k){return chosen[k]});
     var p={hd:h.name,ngay:ks,buoi:buoi,cung:cung,nd:nd.value,dd:CFG.coDiaDiem?ddGet():'',f:f};
+    if(!(edit&&edit.khac===undefined&&!khacTa.value.trim()))p.khac=khacTa.value;   // bản lưu cũ chưa có thông tin này: không gửi để máy chủ giữ nguyên
     if(edit)p.ma=edit.ma;
     if(nhapSel)p.nhap=nhapSel.value;
     btn.disabled=true;btn.textContent='Đang lưu…';
@@ -1660,6 +1664,7 @@ function nkForm(body,edit,preset){
     el('label',{class:'l'},[edit?'Ngày thực hiện ':'Ngày thực hiện (chọn một hoặc nhiều ngày) ',el('i',{text:'*'})]),calBox,selBox,
     el('label',{class:'l'},['Buổi ',el('i',{text:'*'})]),seg,
     el('label',{class:'l'},[el('span',{text:'Cán bộ tham gia cùng'}),el('span',{class:'mut',text:'  (không cần chọn chính bạn)'})]),search,pickBox,
+    el('label',{class:'l'},[el('span',{text:'Người tham gia khác'}),el('span',{class:'mut',text:'  (ngoài cán bộ của hạt, mỗi người một dòng – không bắt buộc)'})]),khacTa,
     el('label',{class:'l'},[CFG.coDiaDiem?'Nội dung':'Nội dung / địa điểm']),nd,
     CFG.coDiaDiem?el('label',{class:'l',text:'Địa điểm'}):null,CFG.coDiaDiem?ddXa:null,CFG.coDiaDiem?el('div',{style:'height:6px'}):null,CFG.coDiaDiem?ddTxt:null,
     CFG.coDiaDiem?el('div',{class:'hint',text:'Báo cáo theo địa bàn tính theo xã chọn ở đây (ví dụ đi tuyên truyền ở xã khác địa bàn mình). Không chọn xã thì tính theo địa bàn của người nhập.'}):null,
@@ -1685,7 +1690,13 @@ function nkList(body){
     if(!q.thang){alert('Chọn tháng trước.');return}
     xuatNhatKy(q,q.tatCa?(q.nguoi?'Cán bộ: '+q.nguoi:'Tất cả cán bộ'):'Cán bộ: '+CFG.ten,xb);
   });
-  ctr.push(el('p',{},[go,' ',xb]));
+  var xm=el('button',{class:'s',text:'📄 Xuất nhật ký',onclick:function(){
+    if(!thang.value){alert('Chọn tháng trước.');return}
+    var tc=tatCa?!!tatCa.value:false,ng=nguoi?nguoi.value:'';
+    if(tc&&!ng){alert('Đang xem tất cả cán bộ: hãy chọn một người ở ô "Lọc theo người" để xuất nhật ký của người đó.');return}
+    nkXuatMau({thang:thang.value,tatCa:tc,nguoi:ng},tc?ng:CFG.ten);
+  }});
+  ctr.push(el('p',{},[go,' ',xm,' ',xb]));
   body.appendChild(el('div',{class:'card'},ctr));body.appendChild(list);
   function load(){
     list.innerHTML='';list.appendChild(msgCard('Đang tải…'));
@@ -1701,6 +1712,7 @@ function nkList(body){
         if(e.tomTat)kids.push(el('div',{text:e.tomTat}));
         if(e.nd)kids.push(el('div',{class:'mut',text:e.nd}));
         if(e.dd)kids.push(el('div',{class:'mut',text:'📍 '+e.dd}));
+        if(e.khac&&e.khac.length)kids.push(el('div',{class:'mut',text:'👥 Người khác: '+e.khac.join('; ')}));
         kids.push(el('div',{class:'mut',text:e.ma}));
         var hdA=CFG.hoatDong.filter(function(h){return h.name===e.hd})[0];
         var na=nutAnh(e,!!(hdA&&hdA.anh)&&(e.sua||e.nhap===CFG.ten||e.cung.indexOf(CFG.ten)>=0)),bt=[];
@@ -2063,6 +2075,7 @@ function lichItem(x,r){
   if(x.tomTat)kids.push(el('div',{text:x.tomTat}));
   if(x.nd)kids.push(el('div',{class:'mut',text:x.nd}));
   if(x.dd)kids.push(el('div',{class:'mut',text:'📍 '+x.dd}));
+  if(x.khac&&x.khac.length)kids.push(el('div',{class:'mut',text:'👥 Người khác: '+x.khac.join('; ')}));
   if(x.trung==='chan')kids.push(el('div',{class:'err',text:'Trùng buổi với việc không ghép được'}));
   else if(x.trung==='canh')kids.push(el('div',{class:'mut',text:x.nghi?'Trùng với nhật ký công việc':'Trùng với lịch nghỉ'}));
   var cA=(r.chuThich||[]).filter(function(c){return c.code===x.code})[0];
@@ -2743,6 +2756,139 @@ function taiVeFile(blob,ten){
 }
 /* nút chỉ hiện khi quản trị đã bật cho chức năng đó (⚙️ Quản lý → Nút xuất Excel) */
 function nutExcel(ma,fn){return ME&&ME.excel&&ME.excel[ma]?el('button',{class:'s',text:'📥 Xuất Excel',onclick:fn}):null}
+
+/* ---- Nhật ký công tác theo mẫu (sổ nhật ký của một người, có khu ký xác nhận) ---- */
+function nkKyKey(){return 'qlct_nkky:'+((phien()||{}).email||'')}
+function nkKyLay(){try{var a=JSON.parse(localStorage.getItem(nkKyKey())||'null');if(Array.isArray(a))return a}catch(e){}return [{td:'',ten:''},{td:'',ten:''}]}
+/* hộp chọn người ký xác nhận (thêm, bớt; nhớ trên máy cho lần sau) rồi tạo file */
+function nkXuatMau(q,ten){
+  var ky=nkKyLay(),box=el('div',{}),msg=el('div',{});
+  function ve(){
+    box.innerHTML='';
+    ky.forEach(function(k,i){
+      var td=el('input',{type:'text',placeholder:'Chức danh, VD: HẠT TRƯỞNG'}),tn=el('input',{type:'text',placeholder:'Họ và tên (để trống nếu ghi tay)',list:'nkKyDs'});
+      td.value=k.td||'';tn.value=k.ten||'';
+      td.oninput=function(){k.td=td.value};tn.oninput=function(){k.ten=tn.value};
+      box.appendChild(el('div',{style:'border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0;background:#fafcfb'},[
+        el('div',{style:'display:flex;justify-content:space-between'},[el('b',{text:'Người ký '+(i+1)}),el('span',{class:'link',style:'color:var(--red)',text:'✕ Bỏ',onclick:function(){ky.splice(i,1);ve()}})]),
+        td,el('div',{style:'height:6px'}),tn]));
+    });
+  }
+  ve();
+  var dl=el('datalist',{id:'nkKyDs'},((CFG&&CFG.tatCaNguoi)||[]).map(function(n){return el('option',{value:n.ten})}));
+  var p=q.thang.split('-');
+  var nut=el('button',{class:'p',text:'📄 Tạo file Excel',onclick:function(){
+    try{localStorage.setItem(nkKyKey(),JSON.stringify(ky.map(function(k){return {td:String(k.td||'').trim(),ten:String(k.ten||'').trim()}})))}catch(e){}
+    nut.disabled=true;msg.innerHTML='';msg.appendChild(el('div',{class:'mut',text:'Đang lấy nhật ký…'}));
+    call('NK_DS',Object.assign({},q,{mau:1})).then(function(r){
+      nut.disabled=false;msg.innerHTML='';
+      if(!r||!r.ok){msg.appendChild(el('div',{class:'err',text:(r&&r.message)||'Không lấy được dữ liệu.'}));return}
+      var blob;try{blob=NKX.tao(r,q.thang,ky)}catch(e){msg.appendChild(el('div',{class:'err',text:'Không tạo được file: '+errMsg(e)}));return}
+      ov.remove();
+      chiaSeFile(blob,'NhatKy_'+khongDauTen(r.nguoi.ten)+'_T'+p[1]+'_'+p[0]+'.xlsx','📄');
+    }).catch(function(e){nut.disabled=false;msg.innerHTML='';msg.appendChild(el('div',{class:'err',text:errMsg(e)}))});
+  }});
+  var ov=el('div',{class:'xlov',onclick:function(e){if(e.target===ov)ov.remove()}},[el('div',{class:'xlbox',style:'max-height:90vh;overflow:auto'},[
+    el('div',{class:'gt',text:'Xuất nhật ký tháng '+p[1]+'/'+p[0]+' – '+ten}),
+    el('div',{class:'hint',text:'Người ký xác nhận (in ở cuối trang, từ trái sang phải). Chức danh để trống thì in dòng chấm để ghi tay. Người thực hiện ('+ten+') luôn ký ở góc phải. Danh sách được nhớ cho lần sau.'}),
+    dl,box,el('button',{class:'s',text:'＋ Thêm người ký',onclick:function(){ky.push({td:'',ten:''});ve()}}),
+    el('div',{style:'height:12px'}),nut,msg,el('div',{style:'height:8px'}),el('button',{class:'s',text:'Đóng',onclick:function(){ov.remove()}})])]);
+  document.body.appendChild(ov);
+}
+var NKX={
+  /* số liệu của dòng nhật ký → các dòng "Nội dung/kết quả" (nhãn: giá trị kèm đơn vị) */
+  soLieu:function(e){
+    var h=(CFG&&CFG.hoatDong||[]).filter(function(x){return x.name===e.hd})[0],out=[];
+    if(!h||!e.f)return e.tomTat?String(e.tomTat).split(' · '):[];
+    h.fields.forEach(function(fd){
+      var v=e.f[fd.k];if(v===''||v===null||v===undefined)return;
+      var m=String(fd.label).match(/^(.*?)\s*\(([^)]*)\)\s*$/),nhan=m?m[1]:fd.label,dv=m&&/^(m2|m3|ha|đồng|kg|con|cây|người)$/i.test(m[2])?' '+m[2]:'';
+      if(fd.t==='date'&&/^\d{4}-\d{2}-\d{2}/.test(v))v=fmtVN(String(v).slice(0,10));
+      else if(typeof v==='number')v=fd.t==='dec'?String(v).replace('.',','):fmtN(v);
+      out.push(nhan+': '+v+dv);
+    });
+    return out;
+  },
+  /* ước lượng số dòng chữ của ô (để đặt chiều cao hàng – Excel không tự giãn hàng khi mở file) */
+  soDong:function(t,rong){var n=0,c=Math.max(4,Math.floor(rong*0.92));String(t).split('\n').forEach(function(L){n+=Math.max(1,Math.ceil(L.length/c))});return n},
+  styles:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+    '<fonts count="4"><font><sz val="13"/><name val="Times New Roman"/></font><font><b/><sz val="13"/><name val="Times New Roman"/></font>'+
+    '<font><b/><sz val="14"/><name val="Times New Roman"/></font><font><i/><sz val="12"/><name val="Times New Roman"/></font></fonts>'+
+    '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'+
+    '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'+
+    '<border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders>'+
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="10">'+
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+
+    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'+
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'+
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'+
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf>'+
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="top" wrapText="1"/></xf>'+
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf>'+
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'+
+    '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf>'+
+    '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>',
+  /* r: kết quả NK_DS {mau:1}; ky: [{td, ten}] người ký xác nhận → Blob .xlsx đúng mẫu NHAT_KY_CONG_TAC */
+  tao:function(r,thang,ky){
+    var W=[6,18.29,25.29,46.43,25.57,12.43],m=thang.split('-'),ten=r.nguoi.ten,rows=[],mg=[];
+    var dia=String(r.nguoi.dia||'').trim();if(dia&&!/^(xã|phường|thị trấn)\s/i.test(dia))dia='xã '+dia;
+    function c(ref,v,s){v=v===undefined||v===null?'':v;
+      if(typeof v==='number')return '<c r="'+ref+'" s="'+s+'"><v>'+v+'</v></c>';
+      return v===''?'<c r="'+ref+'" s="'+s+'"/>':'<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t xml:space="preserve">'+XL.esc(v)+'</t></is></c>'}
+    function row(n,cells,ht){rows.push('<row r="'+n+'"'+(ht?' ht="'+ht+'" customHeight="1"':'')+'>'+cells.join('')+'</row>')}
+    var C='ABCDEF';
+    function hang(n,vals,s,ht){row(n,vals.map(function(v,i){return c(C[i]+n,v,Array.isArray(s)?s[i]:s)}),ht)}
+    hang(1,['NHẬT KÝ CÔNG TÁC','','','','',''],1,18.75);mg.push('A1:F1');
+    hang(2,['tháng '+Number(m[1])+' năm '+m[0],'','','','',''],1,19.5);mg.push('A2:F2');
+    hang(3,['Họ và tên: ','',ten,'','',''],[2,2,3,3,3,3],16.5);mg.push('A3:B3');
+    hang(4,['Địa bàn phụ trách: ','',dia,'','',''],[2,2,3,3,3,3],16.5);mg.push('A4:B4');
+    row(5,[]);
+    hang(6,['TT','Ngày thực hiện','Hoạt động','Nội dung/ kết quả','Thành phần tham gia','Ghi chú'],4,33);
+    var n=7;
+    r.ds.forEach(function(e,i){
+      var nd=[];if(String(e.nd||'').trim())nd.push(String(e.nd).trim());
+      NKX.soLieu(e).forEach(function(x){nd.push('- '+x)});
+      if(e.dd)nd.push('- Địa điểm: '+e.dd);
+      var tp=[e.nhap].concat(e.cung||[]).concat(e.khac||[]);
+      var v=[i+1,fmtVN(e.ngay)+'\n('+e.buoi+')',e.hd,nd.join('\n'),tp.join('\n'),''];
+      var L=1;v.forEach(function(x,k){if(k)L=Math.max(L,NKX.soDong(x,W[k]))});
+      hang(n,v,[5,5,6,6,6,6],Math.max(16.5,L*17+4));n++;
+    });
+    if(!r.ds.length){hang(n,['','','Không có nhật ký trong tháng.','','',''],[5,5,6,6,6,6],16.5);n++}
+    /* khu ký: các hàng 3 ô (A:B, C:D, E:F); người thực hiện luôn ở ô phải của hàng cuối */
+    var ds=(ky||[]).map(function(k){return {td:String(k.td||'').trim(),ten:String(k.ten||'').trim()}}).concat([{td:'NGƯỜI THỰC HIỆN',ten:ten}]);
+    var o=['A','C','E'],o2=['B','D','F'];
+    n++;
+    for(var i=0;i<ds.length;i+=3){
+      var nhom=ds.slice(i,i+3),vt=nhom.length===3?[0,1,2]:nhom.length===2?[0,2]:[2];
+      var tdv=['','','','','',''],tnv=['','','','','',''],dau=n;
+      nhom.forEach(function(k,j){var q=vt[j];tdv[q*2]=k.td||'…...........................';tnv[q*2]=k.ten;mg.push(o[q]+n+':'+o2[q]+n);mg.push(o[q]+(n+5)+':'+o2[q]+(n+5))});
+      var L=1;nhom.forEach(function(k){L=Math.max(L,NKX.soDong(k.td,W[0]+W[1]))});
+      hang(n,tdv,7,Math.max(16.5,L*17+2));
+      for(var b=1;b<=4;b++)row(n+b,[],16.5);
+      hang(n+5,tnv,8,16.5);
+      n+=7;
+    }
+    var cuoi=n-2;
+    var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+      '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:F'+cuoi+'"/><sheetViews><sheetView tabSelected="1" workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="16.5"/><cols>'+
+      W.map(function(w,i){return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>'}).join('')+'</cols><sheetData>'+rows.join('')+'</sheetData>'+
+      '<mergeCells count="'+mg.length+'">'+mg.map(function(a){return '<mergeCell ref="'+a+'"/>'}).join('')+'</mergeCells>'+
+      '<pageMargins left="0.59" right="0.59" top="0.59" bottom="0.79" header="0.31" footer="0.31"/>'+
+      '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/><headerFooter><oddFooter>&amp;CTrang &amp;P/&amp;N</oddFooter></headerFooter></worksheet>';
+    var tenSheet='Nhật ký T'+Number(m[1])+'-'+m[0],X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    return XL.zip([
+      {n:'[Content_Types].xml',d:X+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'},
+      {n:'_rels/.rels',d:X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+      {n:'xl/workbook.xml',d:X+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+XL.esc(tenSheet)+'" sheetId="1" r:id="rId1"/></sheets>'+
+        '<definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">\''+XL.esc(tenSheet)+'\'!$6:$6</definedName></definedNames></workbook>'},
+      {n:'xl/_rels/workbook.xml.rels',d:X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'},
+      {n:'xl/styles.xml',d:NKX.styles},
+      {n:'xl/worksheets/sheet1.xml',d:x}
+    ]);
+  }
+};
 
 /* ---- Nhật ký công tác ---- */
 function xuatNhatKy(q,phamVi,btn){
