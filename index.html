@@ -382,7 +382,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='2.7';
+var BAN_APP='2.8';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -2365,6 +2365,7 @@ function chartDonut(parts){
    2) Tuần tra, tuyên truyền (số đợt): cột đứng 2 màu, chỉ cán bộ có địa bàn, tên dưới cột. Đều xếp từ nhiều đến ít. */
 var CB_NV=[{n:'Hoàn thành đúng hạn',c:'#2e7d4f'},{n:'Hoàn thành chậm',c:'#b8860b'},{n:'Quá hạn chưa xong',c:'#c0392b'},{n:'Đang thực hiện',c:'#3b7f9e'}];
 var CB_HD=[{n:'Tuần tra',c:SER[0]},{n:'Tuyên truyền',c:SER[1]}];
+var CB_DAY='0.5cm',CB_MAU0='#b8c2bd';   // cột số 0: cao 0,5 cm, màu xám
 function cbKy(r){
   var cb=r.canBo,namNay=new Date().getFullYear()===cb.nam;
   if(!BC.cb||BC.cb.nam!==cb.nam){var thg=namNay?Math.min(r.ky.den,new Date().getMonth()+1):r.ky.den;BC.cb={nam:cb.nam,kieu:'thang',thang:thg,quy:Math.ceil(thg/3)}}
@@ -2404,11 +2405,14 @@ function chartCanBoHD(r,box,ve){
     var v=[cbCong(o,'tt',k.m,1)[0],cbCong(o,'pl',k.m,1)[0]];return {ten:o.ten,v:v,t:v[0]+v[1]}})
     .sort(function(a,b){return b.t-a.t||b.v[0]-a.v[0]||a.ten.localeCompare(b.ten,'vi')});
   var mx=0;ds.forEach(function(o){o.v.forEach(function(x){if(x>mx)mx=x})});
-  box.appendChild(cbChonKy(r,ve));box.appendChild(legendEl(CB_HD));
+  box.appendChild(cbChonKy(r,ve));box.appendChild(legendEl(CB_HD.concat([{n:'Không có (0)',c:CB_MAU0}])));
   if(!ds.length){box.appendChild(el('div',{class:'mut',text:'Chưa có cán bộ nào được gán địa bàn.'}));return}
   var cols=ds.map(function(o){
-    /* luôn đủ 2 cột tuần tra, tuyên truyền; không có thì cột cao 0, ghi số 0 */
-    var bars=o.v.map(function(x,j){return el('div',{class:'cbcot',style:'height:'+(x>0&&mx>0?Math.max(1,x*100/mx):0)+'%;background:'+CB_HD[j].c,'data-tip':o.ten+' · '+CB_HD[j].n+': '+fmtG(x)+' đợt'},
+    /* luôn đủ 2 cột tuần tra, tuyên truyền. Số 0: đoạn cao 0,5 cm màu xám (chung cho 2 chỉ tiêu);
+       số > 0: từ mức 0,5 cm cộng thêm phần theo tỷ lệ với người cao nhất (cột cao nhất cao hết khung) */
+    var bars=o.v.map(function(x,j){
+      var h=x>0&&mx>0?'calc('+CB_DAY+' + (100% - '+CB_DAY+') * '+(x/mx).toFixed(4)+')':CB_DAY;
+      return el('div',{class:'cbcot'+(x>0?'':' khong'),style:'height:'+h+';background:'+(x>0?CB_HD[j].c:CB_MAU0),'data-tip':o.ten+' · '+CB_HD[j].n+': '+fmtG(x)+' đợt'},
       [el('span',{text:fmtG(x)})])});
     return el('div',{class:'vc'},[el('div',{class:'vbs cbvbs'},bars),el('div',{class:'cbten',title:o.ten,text:o.ten})]);
   });
