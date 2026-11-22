@@ -173,7 +173,7 @@ main.wide{max-width:1160px}
 .cbr:last-child{border-bottom:none}
 .cbr .cbn{width:150px;flex:none;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cbr .cbn i{font-style:normal;color:var(--mut);display:inline-block;min-width:22px}
-.cbr .cbt{flex:1;display:flex;height:16px;min-width:0}
+.cbr .cbt{flex:1;display:flex;height:16px;min-width:0;background:#eef2f0;border-radius:4px;overflow:hidden}
 .cbr .cbt span{height:100%;cursor:default}.cbr .cbt span:first-child{border-radius:4px 0 0 4px}.cbr .cbt span:last-child{border-radius:0 4px 4px 0}
 .cbr .cbv{width:44px;flex:none;text-align:right;font-weight:bold;font-size:13px}
 .cbr.khong .cbn,.cbr.khong .cbv{color:#a3aea8}
@@ -375,7 +375,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='2.4';
+var BAN_APP='2.5';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -2354,23 +2354,32 @@ function chartDonut(parts){
   return el('div',{class:'dnw'},[svg,lg]);
 }
 /* ---- Tổng hợp theo cán bộ: thanh chồng, chọn tháng / quý / năm, xếp từ nhiều đến ít ---- */
-var CB_ND={
-  nv:{ten:'Nhiệm vụ được giao',dv:'nhiệm vụ',s:[{n:'Hoàn thành đúng hạn',c:'#2e7d4f'},{n:'Hoàn thành chậm',c:'#b8860b'},{n:'Quá hạn chưa xong',c:'#c0392b'},{n:'Đang thực hiện',c:'#3b7f9e'}],
+/* mỗi chỉ tiêu một biểu đồ: người cao nhất của chỉ tiêu = thanh dài hết khung, người khác theo tỷ lệ */
+var CB_MAU_NV=['#2e7d4f','#b8860b','#c0392b','#3b7f9e'];
+var CB_CT=[
+  {k:'nv',nhom:'Nhiệm vụ được giao',ten:'Tổng số nhiệm vụ (chia màu theo trạng thái)',dv:'nhiệm vụ',
+    s:[{n:'Hoàn thành đúng hạn',c:CB_MAU_NV[0]},{n:'Hoàn thành chậm',c:CB_MAU_NV[1]},{n:'Quá hạn chưa xong',c:CB_MAU_NV[2]},{n:'Đang thực hiện',c:CB_MAU_NV[3]}],
     lay:function(o,m){return o.nv[m]}},
-  hd:{ten:'Tuần tra, tuyên truyền, tập huấn',dv:'đợt/lớp',s:[{n:'Tuần tra (đợt)',c:'#2a78d6'},{n:'Tuyên truyền (đợt)',c:'#eb6834'},{n:'Tập huấn (lớp)',c:'#1baf7a'}],
-    lay:function(o,m){return [o.tt[m],o.pl[m],o.th[m]]}},
-  buoi:{ten:'Số buổi làm việc',dv:'buổi',s:[{n:'Số buổi làm việc',c:'#2e7d4f'}],lay:function(o,m){return [o.buoi[m]]}}
-};
+  {k:'nv0',nhom:'Nhiệm vụ được giao',ten:'Hoàn thành đúng hạn',dv:'nhiệm vụ',s:[{n:'Hoàn thành đúng hạn',c:CB_MAU_NV[0]}],lay:function(o,m){return [o.nv[m][0]]}},
+  {k:'nv1',nhom:'Nhiệm vụ được giao',ten:'Hoàn thành chậm',dv:'nhiệm vụ',s:[{n:'Hoàn thành chậm',c:CB_MAU_NV[1]}],lay:function(o,m){return [o.nv[m][1]]}},
+  {k:'nv2',nhom:'Nhiệm vụ được giao',ten:'Quá hạn chưa xong',dv:'nhiệm vụ',s:[{n:'Quá hạn chưa xong',c:CB_MAU_NV[2]}],lay:function(o,m){return [o.nv[m][2]]}},
+  {k:'nv3',nhom:'Nhiệm vụ được giao',ten:'Đang thực hiện',dv:'nhiệm vụ',s:[{n:'Đang thực hiện',c:CB_MAU_NV[3]}],lay:function(o,m){return [o.nv[m][3]]}},
+  {k:'tt',nhom:'Theo nhật ký',ten:'Tuần tra (đợt)',dv:'đợt',s:[{n:'Tuần tra',c:'#2a78d6'}],lay:function(o,m){return [o.tt[m]]}},
+  {k:'pl',nhom:'Theo nhật ký',ten:'Tuyên truyền pháp luật (đợt)',dv:'đợt',s:[{n:'Tuyên truyền',c:'#eb6834'}],lay:function(o,m){return [o.pl[m]]}},
+  {k:'th',nhom:'Theo nhật ký',ten:'Tập huấn lực lượng khác (lớp)',dv:'lớp',s:[{n:'Tập huấn',c:'#1baf7a'}],lay:function(o,m){return [o.th[m]]}},
+  {k:'buoi',nhom:'Theo nhật ký',ten:'Số buổi làm việc',dv:'buổi',s:[{n:'Số buổi làm việc',c:'#2e7d4f'}],lay:function(o,m){return [o.buoi[m]]}}
+];
 function chartCanBo(r){
   var cb=r.canBo,box=el('div',{}),namNay=new Date().getFullYear()===cb.nam;
   if(!BC.cb||BC.cb.nam!==cb.nam){var thg=namNay?Math.min(r.ky.den,new Date().getMonth()+1):r.ky.den;BC.cb={nam:cb.nam,kieu:'thang',thang:thg,quy:Math.ceil(thg/3),nd:'nv'}}
-  var S=BC.cb;
+  var S=BC.cb;if(!CB_CT.some(function(c){return c.k===S.nd}))S.nd='nv';
   function ve(){
     box.innerHTML='';
     var seg=el('div',{class:'tabs cbtab',style:'margin-bottom:6px'},[['thang','Theo tháng'],['quy','Theo quý'],['nam','Theo năm']].map(function(x){
       return el('button',{class:S.kieu===x[0]?'on':'',text:x[1],onclick:function(){S.kieu=x[0];ve()}})}));
-    var nd=el('select',{},Object.keys(CB_ND).map(function(k){return el('option',{value:k,text:CB_ND[k].ten})}));nd.value=S.nd;
-    nd.onchange=function(){S.nd=nd.value;ve()};
+    var nhom={},nd=el('select',{});
+    CB_CT.forEach(function(c){if(!nhom[c.nhom]){nhom[c.nhom]=el('optgroup',{label:c.nhom});nd.appendChild(nhom[c.nhom])}nhom[c.nhom].appendChild(el('option',{value:c.k,text:c.ten}))});
+    nd.value=S.nd;nd.onchange=function(){S.nd=nd.value;ve()};
     var thangs,nhan;
     if(S.kieu==='thang'){thangs=[S.thang-1];nhan='Tháng '+S.thang+'/'+cb.nam}
     else if(S.kieu==='quy'){thangs=[0,1,2].map(function(i){return (S.quy-1)*3+i});nhan='Quý '+['I','II','III','IV'][S.quy-1]+'/'+cb.nam+' (tháng '+((S.quy-1)*3+1)+'–'+(S.quy*3)+')'}
@@ -2378,23 +2387,26 @@ function chartCanBo(r){
     var buoc=function(d){if(S.kieu==='thang')S.thang=Math.min(12,Math.max(1,S.thang+d));else S.quy=Math.min(4,Math.max(1,S.quy+d));ve()};
     var nav=S.kieu==='nam'?el('div',{class:'cbnav'},[el('b',{text:nhan})]):
       el('div',{class:'cbnav'},[el('button',{class:'s',text:'‹',onclick:function(){buoc(-1)}}),el('b',{text:nhan}),el('button',{class:'s',text:'›',onclick:function(){buoc(1)}})]);
-    var D=CB_ND[S.nd],ds=cb.ds.map(function(o){
+    var D=CB_CT.filter(function(c){return c.k===S.nd})[0],ds=cb.ds.map(function(o){
       var v=D.s.map(function(){return 0});
       thangs.forEach(function(m){D.lay(o,m).forEach(function(x,k){v[k]+=Number(x)||0})});
       var t=0;v.forEach(function(x){t+=x});return {ten:o.ten,dia:o.dia,v:v,t:Math.round(t*100)/100};
     }).sort(function(a,b){return b.t-a.t||a.ten.localeCompare(b.ten,'vi')});
-    var mx=0;ds.forEach(function(o){if(o.t>mx)mx=o.t});
+    var mx=0;ds.forEach(function(o){if(o.t>mx)mx=o.t});   // người cao nhất của chỉ tiêu = 100% chiều dài
+    var f=function(x){return fmtN(x,x%1?1:0)};
     var rows=ds.map(function(o,i){
       var thanh=el('div',{class:'cbt'});
-      if(mx>0)o.v.forEach(function(x,k){if(x>0)thanh.appendChild(el('span',{'data-tip':o.ten+' · '+D.s[k].n+': '+fmtN(x,x%1?1:0),style:'width:'+(x*100/mx).toFixed(2)+'%;background:'+D.s[k].c}))});
-      return el('div',{class:'cbr'+(o.t?'':' khong')},[el('div',{class:'cbn',title:o.ten+(o.dia?' ('+o.dia+')':'')},[el('i',{text:(i+1)+'.'}),o.ten]),thanh,el('div',{class:'cbv',text:fmtN(o.t,o.t%1?1:0)})]);
+      if(mx>0)o.v.forEach(function(x,k){if(x>0)thanh.appendChild(el('span',{'data-tip':o.ten+' · '+D.s[k].n+': '+f(x),style:'width:'+(x*100/mx).toFixed(2)+'%;background:'+D.s[k].c}))});
+      var pt=mx>0?Math.round(o.t*100/mx):0;
+      return el('div',{class:'cbr'+(o.t?'':' khong')},[el('div',{class:'cbn',title:o.ten+(o.dia?' ('+o.dia+')':'')},[el('i',{text:(i+1)+'.'}),o.ten]),thanh,
+        el('div',{class:'cbv',title:pt+'% so với người cao nhất',text:f(o.t)})]);
     });
-    var tong=0;ds.forEach(function(o){tong+=o.t});
+    var tong=0,co=0;ds.forEach(function(o){tong+=o.t;if(o.t)co++});
     box.appendChild(seg);
-    box.appendChild(el('div',{style:'display:flex;gap:8px;align-items:center;flex-wrap:wrap'},[el('span',{class:'mut',text:'Nội dung:'}),el('div',{style:'flex:1;min-width:200px'},[nd])]));
+    box.appendChild(el('div',{style:'display:flex;gap:8px;align-items:center;flex-wrap:wrap'},[el('span',{class:'mut',text:'Chỉ tiêu:'}),el('div',{style:'flex:1;min-width:200px'},[nd])]));
     box.appendChild(nav);
     box.appendChild(legendEl(D.s)||el('div',{}));
-    box.appendChild(el('div',{class:'mut',style:'font-size:13px;margin-bottom:4px',text:'Tổng: '+fmtN(tong,tong%1?1:0)+' '+D.dv+(mx?'':' – chưa có số liệu trong thời gian này')}));
+    box.appendChild(el('div',{class:'mut',style:'font-size:13px;margin-bottom:4px',text:mx?('Cao nhất: '+f(mx)+' '+D.dv+' (thanh dài hết khung) · Tổng: '+f(tong)+' '+D.dv+' · '+co+'/'+ds.length+' cán bộ có số liệu'):'Chưa có số liệu trong thời gian này.'}));
     box.appendChild(el('div',{},rows));
   }
   ve();return box;
@@ -2453,7 +2465,7 @@ function bcRender(r){
     ch.push(chartCard('Tuần tra, tuyên truyền, tập huấn theo địa bàn (đợt/lớp)',chartH(r.xa.map(function(x){return {l:x.ten,v:[x.tt,x.pl,x.th]}}),S3,0),'Theo xã ở ô Địa điểm của nhật ký; không chọn xã thì theo địa bàn của người nhập.'));
     ch.push(chartCard('Tuần tra, tuyên truyền theo đối tượng (đợt)',chartH(r.dt.map(function(x){return {l:x.ten,v:[x.tt,x.pl]}}),S3.slice(0,2),0),'Số liệu chủ rừng, cộng đồng, chính quyền nhập ở Số liệu tháng.'));
     ch.push(chartCard('Tuần tra, tuyên truyền, tập huấn theo tháng – năm '+r.thang.nam,chartV([r.thang.tt,r.thang.pl,r.thang.th],S3,0,hl),'Cột có nền là các tháng trong kỳ báo cáo.','full'));
-    if(r.canBo)ch.push(chartCard('Tổng hợp theo cán bộ – năm '+r.canBo.nam,chartCanBo(r),'Xếp từ nhiều đến ít. Nhiệm vụ tính theo hạn hoàn thành nằm trong tháng/quý/năm; tuần tra, tuyên truyền, tập huấn và số buổi tính theo nhật ký có tên người đó (kể cả đi cùng; cả ngày = 2 buổi).','full'));
+    if(r.canBo)ch.push(chartCard('Tổng hợp theo cán bộ – năm '+r.canBo.nam,chartCanBo(r),'Xếp từ nhiều đến ít. Người cao nhất của chỉ tiêu đang chọn có thanh dài hết khung, người khác dài theo tỷ lệ so với người đó (để so sánh). Nhiệm vụ tính theo hạn hoàn thành nằm trong tháng/quý/năm; tuần tra, tuyên truyền, tập huấn và số buổi tính theo nhật ký có tên người đó (kể cả đi cùng; cả ngày = 2 buổi).','full'));
     // nhóm 2: khai thác
     ch.push(chartCard('Gỗ khai thác theo địa bàn (M3)',chartH(X('kt'),[{n:'Gỗ khai thác',c:ONE}],1)));
     ch.push(chartCard('Khai thác gỗ theo tháng (M3) – năm '+r.thang.nam,chartV([r.thang.kt],[{n:'Gỗ khai thác',c:ONE}],1,hl)));
