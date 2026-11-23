@@ -178,6 +178,10 @@ main.wide{max-width:1160px}
 .cbr .cbv{width:44px;flex:none;text-align:right;font-weight:bold;font-size:13px}
 .cbr.khong .cbn,.cbr.khong .cbv{color:#a3aea8}
 .cbcuon{overflow-x:auto;max-width:100%}
+.khtb{border-collapse:collapse;width:100%;font-size:13px}.khtb th,.khtb td{border:1px solid #c9d3cc;padding:5px 6px;vertical-align:middle;text-align:center}
+.khtb th{background:#eef3ef;font-weight:600}.khtb td.tn{text-align:left;white-space:nowrap}.khtb .tt{display:block;font-size:11px;color:#667;margin-top:2px}
+.khtb .chip{font-size:11px;padding:1px 7px;margin:2px 0 0}@media(max-width:600px){.khtb{font-size:12px}.khtb th,.khtb td{padding:4px}}
+.khnav{display:flex;align-items:center;gap:8px;margin:4px 0 8px}.khnav b{min-width:110px;text-align:center}
 .chg>.card{min-width:0}
 .cbvch{height:220px;gap:6px}
 .cbvbs{gap:3px;padding-top:16px}
@@ -252,7 +256,7 @@ function call(action,params,khongXepHang){
    Ghi/sửa/xóa thành công → xóa bản lưu của các màn hình xem. */
 var VIEW=0,LATEST={},PENDING=0;
 var GHI_XOA_HET={QT_SUA_NGUOI:1,QT_DOI_NAM:1,DUYET:1,GUI_YEU_CAU:1};
-var CHI_DOC={BB_DS:1,BB_CAUHINH:1,BB_PL:1,ANH_DS:1,ANH_LAY:1,PUSH_DANGKY:1,PUSH_HUY:1,PUSH_THU:1,ME:1,NK_CAUHINH:1,NV_CAUHINH:1,SLT_CAUHINH:1,NK_DS:1,NV_DS:1,SLT_DS:1,SLT_LAY:1,LICH_THANG:1,BC_TINH:1,CM_LAY:1,QT_CAUHINH:1,DS_YEU_CAU:1};
+var CHI_DOC={KHTT_BANG:1,BB_DS:1,BB_CAUHINH:1,BB_PL:1,ANH_DS:1,ANH_LAY:1,PUSH_DANGKY:1,PUSH_HUY:1,PUSH_THU:1,ME:1,NK_CAUHINH:1,NV_CAUHINH:1,SLT_CAUHINH:1,NK_DS:1,NV_DS:1,SLT_DS:1,SLT_LAY:1,LICH_THANG:1,BC_TINH:1,CM_LAY:1,QT_CAUHINH:1,DS_YEU_CAU:1};
 function ckey(kind,action,params){return 'qlct_c:'+((phien()||{}).email||'')+':'+kind+':'+action+':'+JSON.stringify(params||{})}
 function cget(k){try{var o=JSON.parse(localStorage.getItem(k)||'null');if(o&&Date.now()-o.t<30*864e5)return o}catch(e){}return null}
 function cset(k,d){
@@ -382,7 +386,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='2.8';
+var BAN_APP='2.9';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -1789,8 +1793,24 @@ function makePick(users,chosen,single,onchange){
 function nvForm(body,edit,tu){
   var nhan={},cung={};
   if(edit){nhan[edit.nhan]=true;edit.cung.forEach(function(n){cung[n]=true})}
-  var loai=el('select',{},[el('option',{value:'',text:'— Chọn loại —'})].concat(NVCFG.loai.map(function(x){return el('option',{value:x,text:x})})));
+  var loai=el('select',{},[el('option',{value:'',text:'— Chọn loại —'})].concat(NVCFG.loai.map(function(x){return el('option',{value:x,text:x===NVCFG.loaiKh?x+' tháng sau':x})})));
   if(edit)loai.value=edit.loai;
+  /* Kế hoạch tuần tra rừng: tháng, số đợt, tiểu khu, thời gian (không bắt buộc) – tên, số lượng, hạn do máy chủ tính */
+  var thSau=(function(){var p=NVCFG.homNay.split('-'),y=+p[0],m=+p[1]+1;if(m>12){m=1;y++}return y+'-'+('0'+m).slice(-2)})();
+  var ek=edit&&edit.kh||null;
+  var khThang=el('input',{type:'month',value:ek?ek.thang:thSau,min:NVCFG.homNay.slice(0,7)});
+  var khDot=el('input',{type:'number',min:'1',value:edit&&ek?String(edit.sl||1):'1'});
+  var khTk=el('input',{type:'text',placeholder:'Ví dụ: 595, 579, 557',value:ek?ek.tk.join(', '):''});
+  var khTu=el('input',{type:'date',value:ek?ek.tu:''}),khDen=el('input',{type:'date',value:ek?ek.den:''});
+  function khGioiHan(){var t=khThang.value;if(!/^\d{4}-\d{2}$/.test(t))return;var p=t.split('-'),cuoi=new Date(+p[0],+p[1],0).getDate();
+    [khTu,khDen].forEach(function(x){x.min=t+'-01';x.max=t+'-'+cuoi;if(x.value&&x.value.slice(0,7)!==t)x.value=''})}
+  khThang.addEventListener('change',khGioiHan);khGioiHan();
+  var khBox=el('div',{},[el('label',{class:'l'},['Tháng kế hoạch ',el('i',{text:'*'})]),khThang,
+    el('label',{class:'l'},['Số đợt tuần tra ',el('i',{text:'*'})]),khDot,
+    el('label',{class:'l',text:'Tiểu khu đăng ký'}),khTk,el('div',{class:'hint',text:'Ghi số các tiểu khu, cách nhau bằng dấu phẩy.'}),
+    el('label',{class:'l',text:'Thời gian thực hiện (không bắt buộc)'}),
+    el('div',{style:'display:flex;gap:8px;align-items:center'},[el('span',{class:'mut',text:'Từ'}),khTu,el('span',{class:'mut',text:'đến'}),khDen]),
+    el('div',{class:'hint',text:'Nhiệm vụ tự hoàn thành khi nhật ký "Tuần tra rừng" (của người nhận hoặc người phối hợp) trong thời gian kế hoạch đi đủ các tiểu khu và đủ số đợt. Hết hạn (hết tháng hoặc hết "đến ngày") mà chưa đủ thì tính chưa hoàn thành.'})]);
   var tenLb=el('label',{class:'l'},['Tên hồ sơ / nhiệm vụ ',el('i',{text:'*'})]);
   var ten=el('textarea',{rows:'2',placeholder:'Tên hồ sơ / nhiệm vụ'});if(edit)ten.value=edit.ten;
   var sl=el('input',{type:'number',min:'0',value:(edit&&edit.sl!=='')?String(edit.sl):'1'});
@@ -1807,9 +1827,12 @@ function nvForm(body,edit,tu){
   var nguoiGiao=el('input',{type:'text',placeholder:'Ví dụ: Hạt trưởng, Chi cục Kiểm lâm…'});if(edit)nguoiGiao.value=edit.nguoiGiao||'';
   var giao=el('input',{type:'date',value:edit?edit.giao:NVCFG.homNay});
   var cungBox=el('div',{}),msg=el('div',{});
+  var tenBox=el('div',{}),hanBox=el('div',{}),ngBox=el('div',{});
   function drawLoai(){
-    var vb=loai.value===NVCFG.loaiVb;
-    slBox.style.display=vb?'none':'';
+    var vb=loai.value===NVCFG.loaiVb,kh=!!NVCFG.loaiKh&&loai.value===NVCFG.loaiKh;
+    khBox.style.display=kh?'':'none';[tenBox,hanBox,ngBox].forEach(function(b){b.style.display=kh?'none':''});
+    if(hdBox)hdBox.style.display=kh?'none':'';
+    slBox.style.display=vb||kh?'none':'';
     tenLb.firstChild.textContent=vb?'Nội dung / trích yếu văn bản ':'Tên hồ sơ / nhiệm vụ ';
     ten.placeholder=vb?'Nội dung / trích yếu văn bản cần tham mưu':'Tên hồ sơ / nhiệm vụ';
   }
@@ -1823,10 +1846,12 @@ function nvForm(body,edit,tu){
   var btn=el('button',{class:'p',text:lbl,onclick:save});
   function save(){
     msg.innerHTML='';
-    var ns=tu?[NVCFG.ten]:Object.keys(nhan),vb=loai.value===NVCFG.loaiVb;
+    var ns=tu?[NVCFG.ten]:Object.keys(nhan),vb=loai.value===NVCFG.loaiVb,kh=!!NVCFG.loaiKh&&loai.value===NVCFG.loaiKh;
     var p={loai:loai.value,ten:ten.value,sl:vb?'':sl.value,han:han.value,nhan:ns,cung:ns.length===1?Object.keys(cung):[]};
-    if(hdNk)p.hdNk=hdNk.value;
+    if(hdNk&&!kh)p.hdNk=hdNk.value;
     if(tu||(edit&&edit.tuNhap)){p.nguoiGiao=nguoiGiao.value;p.giao=giao.value}
+    if(kh){p.thang=khThang.value;p.dot=khDot.value;p.tk=khTk.value;p.tu=khTu.value;p.den=khDen.value;p.ten='';p.han='';
+      if(!edit||!edit.tuNhap||edit.loai===NVCFG.loaiKh){delete p.giao;if(!edit||edit.loai===NVCFG.loaiKh)p.nguoiGiao=edit?edit.nguoiGiao:''}}
     if(edit)p.ma=edit.ma;
     btn.disabled=true;btn.textContent='Đang lưu…';
     call(edit?'NV_SUA':(tu?'NV_TUTHEM':'NV_GIAO'),p).then(function(r){
@@ -1838,9 +1863,10 @@ function nvForm(body,edit,tu){
       }else msg.appendChild(el('div',{class:'bad',text:(r&&r.message)||'Không lưu được.'}));
     }).catch(function(e){btn.disabled=false;btn.textContent=lbl;msg.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
   }
-  var nodes=[el('label',{class:'l'},['Loại nhiệm vụ ',el('i',{text:'*'})]),loai,tenLb,ten,slBox,hdBox];
-  if(tu||(edit&&edit.tuNhap))nodes.push(el('label',{class:'l'},['Người / cơ quan giao ',el('i',{text:'*'})]),nguoiGiao,el('label',{class:'l',text:'Ngày được giao'}),giao);
-  nodes.push(el('label',{class:'l'},['Hạn hoàn thành ',el('i',{text:'*'})]),han);
+  tenBox.appendChild(tenLb);tenBox.appendChild(ten);
+  var nodes=[el('label',{class:'l'},['Loại nhiệm vụ ',el('i',{text:'*'})]),loai,tenBox,khBox,slBox,hdBox];
+  if(tu||(edit&&edit.tuNhap)){[el('label',{class:'l'},['Người / cơ quan giao ',el('i',{text:'*'})]),nguoiGiao,el('label',{class:'l',text:'Ngày được giao'}),giao].forEach(function(n){ngBox.appendChild(n)});nodes.push(ngBox)}
+  hanBox.appendChild(el('label',{class:'l'},['Hạn hoàn thành ',el('i',{text:'*'})]));hanBox.appendChild(han);nodes.push(hanBox);
   if(tu)nodes.push(el('div',{class:'hint',text:'Người nhận: chính bạn ('+NVCFG.ten+'). Chức năng này không giao việc cho người khác.'}),cungBox);
   else nodes.push(el('label',{class:'l'},[edit?'Người nhận ':'Người nhận (chọn một hoặc nhiều người) ',el('i',{text:'*'})]),
     el('div',{class:'hint',text:edit?'Chỉ chọn một người.':'Chọn 1 người: có thể thêm người phối hợp. Chọn nhiều người: mỗi người nhận một nhiệm vụ riêng, hoàn thành riêng.'}),
@@ -1901,7 +1927,8 @@ function nvList(body){
         var kids=[el('div',{class:'hd',text:e.ten}),
           el('div',{},[el('span',{class:'chip '+cls,text:e.tt}),el('span',{class:'chip',text:e.loai}),e.tuNhap?el('span',{class:'chip',text:'Tự thêm'}):null]),
           (e.vbSo||e.vbNgay)?el('div',{class:'mut',text:'Văn bản: '+(e.vbSo||'(chưa có số)')+(e.vbNgay?' ngày '+fmtVN(e.vbNgay):'')}):null,
-          el('div',{class:'mut',text:'Hạn: '+fmtVN(e.han)+(e.sl!==''&&e.sl!==null?' · SL: '+e.sl:'')+(e.xong?' · Hoàn thành: '+fmtVN(e.ngayxong):'')}),
+          el('div',{class:'mut',text:'Hạn: '+fmtVN(e.han)+(e.sl!==''&&e.sl!==null?(e.kh?' · Số đợt: ':' · SL: ')+e.sl:'')+(e.xong?' · Hoàn thành: '+fmtVN(e.ngayxong):'')}),
+          e.kh&&!e.xong&&e.tt==='Đang thực hiện'?el('div',{class:'hint',text:'Tự hoàn thành khi nhật ký tuần tra rừng đi đủ các tiểu khu và số đợt đã đăng ký.'}):null,
           el('div',{class:'mut',text:'Người nhận: '+e.nhan+(e.cung.length?' · Phối hợp: '+e.cung.join(', '):'')}),
           el('div',{class:'mut',text:e.ma+' · giao ngày '+fmtVN(e.giao)+(e.nguoiGiao?' · người giao: '+e.nguoiGiao:'')})];
         var btns=[];
@@ -2430,6 +2457,49 @@ function tbl(heads,rows){
   rows.forEach(function(r){var x=el('tr',{});r.forEach(function(c){x.appendChild(el('td',{text:String(c)}))});t.appendChild(x)});
   return el('div',{style:'overflow-x:auto'},[t]);
 }
+/* Bảng tổng hợp kế hoạch tuần tra rừng theo tháng (KHTT_BANG). Mặc định tháng cuối của kỳ báo cáo. */
+function khttBang(r){
+  var box=el('div',{}),nav=el('div',{class:'khnav noprint'}),bang=el('div',{class:'cbcuon'}),tieuDe=el('b',{});
+  if(!BC.khThang||BC.khKy!==r.ky.nam+'-'+r.ky.den){BC.khKy=r.ky.nam+'-'+r.ky.den;BC.khThang=r.ky.nam+'-'+('0'+r.ky.den).slice(-2)}
+  function doi(d){var p=BC.khThang.split('-'),y=+p[0],m=+p[1]+d;if(m<1){m=12;y--}if(m>12){m=1;y++}BC.khThang=y+'-'+('0'+m).slice(-2);tai()}
+  nav.appendChild(el('button',{class:'s',text:'‹',onclick:function(){doi(-1)}}));nav.appendChild(tieuDe);nav.appendChild(el('button',{class:'s',text:'›',onclick:function(){doi(1)}}));
+  box.appendChild(nav);box.appendChild(bang);
+  function tai(){
+    var th=BC.khThang,p=th.split('-');tieuDe.textContent='Tháng '+(+p[1])+'/'+p[0];
+    bang.innerHTML='';bang.appendChild(el('div',{class:'mut',text:'Đang tải…'}));
+    callView('KHTT_BANG',{thang:th}).then(function(x){
+      if(BC.khThang!==th)return;
+      bang.innerHTML='';
+      if(!x||!x.ok){bang.appendChild(el('div',{class:'bad',text:(x&&x.message)||'Lỗi'}));return}
+      var nhom=x.nhom;
+      if(r.pham!=='hat')nhom=nhom.filter(function(n){return n.tv.some(function(t){return t.ten===x.ten})}).map(function(n){return {ke:n.ke,dot:n.dot,chua:n.chua,nv:n.nv,tv:n.tv.filter(function(t){return t.ten===x.ten})}});
+      if(!nhom.length){bang.appendChild(el('div',{class:'mut',text:'Chưa có kế hoạch, nhật ký tuần tra rừng trong tháng.'}));return}
+      var t=el('table',{class:'khtb'});
+      t.appendChild(el('tr',{},[el('th',{rowspan:'2',text:'Họ và tên'}),el('th',{rowspan:'2',text:'Kế hoạch'}),el('th',{colspan:'2',text:'Đã thực hiện'}),el('th',{rowspan:'2',text:'Chưa thực hiện'}),el('th',{rowspan:'2',text:'Ngày kiểm tra'})]));
+      t.appendChild(el('tr',{},[el('th',{text:'Theo KH'}),el('th',{text:'Ngoài KH'})]));
+      nhom.forEach(function(n){
+        n.tv.forEach(function(v,i){
+          var tr=el('tr',{},[el('td',{class:'tn',text:v.ten})]);
+          if(i===0){
+            var tts=n.nv.map(function(z){return z.tt}).filter(function(z,j,a){return a.indexOf(z)===j});
+            var keo=n.ke.length?[el('span',{text:n.ke.join(', ')})]:[el('span',{class:'mut',text:n.nv.length?'(không ghi TK)':'–'})];
+            if(n.nv.length)keo.push(el('span',{class:'tt',text:n.dot+' đợt'+(n.nv.map(function(z){return z.tg}).filter(Boolean).length?' · '+n.nv.map(function(z){return z.tg}).filter(Boolean).join('; '):'')}),
+              el('span',{class:'tt'},tts.map(function(z){return el('span',{class:'chip '+(TT_CLASS[z]||''),text:z})})));
+            tr.appendChild(el('td',{rowspan:String(n.tv.length)},keo));
+          }
+          tr.appendChild(el('td',{text:v.theoKH.join(', ')}));tr.appendChild(el('td',{text:v.ngoaiKH.join(', ')}));
+          if(i===0)tr.appendChild(el('td',{rowspan:String(n.tv.length),text:n.chua.join(', ')}));
+          tr.appendChild(el('td',{text:v.ngay.join(', ')}));
+          t.appendChild(tr);
+        });
+      });
+      bang.appendChild(t);
+      bang.appendChild(el('div',{class:'hint',text:'Theo nhật ký "Tuần tra rừng" (ô Tiểu khu). 595(2): tiểu khu đi 2 ngày. Kế hoạch chung của nhiều người được gộp; chưa thực hiện = tiểu khu đã đăng ký nhưng chưa ai trong nhóm đi.'}));
+    }).catch(function(e){if(BC.khThang!==th)return;bang.innerHTML='';bang.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
+  }
+  tai();
+  return box;
+}
 function bcRender(r){
   var nam=el('input',{type:'number',value:String(BC.nam),min:'2000',max:'2100'});
   var mk=function(v){var s=el('select',{});for(var m=1;m<=12;m++)s.appendChild(el('option',{value:String(m),text:'Tháng '+m}));s.value=String(v);return s};
@@ -2498,7 +2568,7 @@ function bcRender(r){
     ch.push(chartCard('Số vụ vi phạm theo tháng – năm '+r.thang.nam,chartV([r.thang.vp],[{n:'Số vụ',c:ONE}],0,hl)));
     ch.push(chartCard('Nhiệm vụ theo trạng thái (theo hạn trong kỳ)',chartDonut(nvParts)));
   }
-  ch.push(chartCard('Ngày nghỉ theo loại',r.nghiLoai.length?chartH(r.nghiLoai.map(function(x){return {l:x.ten,v:[x.ngay]}}),[{n:'Số ngày',c:ONE}],1):el('div',{class:'mut',text:'Không có ngày nghỉ trong kỳ.'})));
+  ch.push(chartCard('Kế hoạch tuần tra rừng',khttBang(r),null,'full'));
   nodes.push(el('div',{class:'chg'},ch));
   if(r.pham==='hat'){
     nodes.push(el('div',{class:'card'},[el('div',{class:'gt',text:'Bảng số liệu theo địa bàn (xã)'}),
