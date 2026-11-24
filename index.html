@@ -386,7 +386,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='3.0';
+var BAN_APP='3.1';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -682,6 +682,7 @@ function home(){
   var tilesRieng=[];
   if(RG.BB)tilesRieng.push({ic:'📋',t:'Biên bản / báo cáo',s:thuNghiem||'Biên bản kiểm tra, bàn giao; phụ lục 3',fn:bbHome});
   if(RG.BD)tilesRieng.push({ic:'🗺️',t:'Bản đồ',s:thuNghiem||'Xem bản đồ, vị trí, khoanh vùng',fn:bdHome});
+  if(RG.VB)tilesRieng.push({ic:'⚖️',t:'Văn bản pháp luật',s:thuNghiem||'Luật, nghị định, thông tư – tra cứu nhanh',fn:vbHome});
   /* phân hệ bị quản trị khóa: người dùng không vào được; quản trị vẫn vào được và thấy dấu 🔒 */
   var KH=ME.khoa||{};
   ['NK','NV','SLT','LICH','BC','CM'].forEach(function(m,i){
@@ -1446,6 +1447,16 @@ function bdHome(){
   var s=document.createElement('script');s.src='bando.js';
   s.onload=function(){if(window.BD&&BD.mo)BD.mo();else show([msgCard('Không mở được chức năng bản đồ.',true,[retry(bdHome)])],boot)};
   s.onerror=function(){s.remove();show([msgCard('Không tải được chức năng bản đồ (cần có mạng ở lần mở đầu tiên).',true,[retry(bdHome)])],boot)};
+  document.head.appendChild(s);
+}
+
+/* Văn bản pháp luật: mã nằm ở vanban.js (nạp khi cần) – tra cứu Luật, Nghị định, Thông tư; dữ liệu ở thư mục vanban/ */
+function vbHome(){
+  if(window.VB&&VB.mo)return VB.mo();
+  show([msgCard('Đang mở văn bản pháp luật…')],boot);
+  var s=document.createElement('script');s.src='vanban.js';
+  s.onload=function(){if(window.VB&&VB.mo)VB.mo();else show([msgCard('Không mở được chức năng văn bản.',true,[retry(vbHome)])],boot)};
+  s.onerror=function(){s.remove();show([msgCard('Không tải được chức năng văn bản (cần có mạng ở lần mở đầu tiên).',true,[retry(vbHome)])],boot)};
   document.head.appendChild(s);
 }
 
@@ -3414,7 +3425,7 @@ function qtRender(r){
         x.addEventListener('change',function(){chon[u.ten]=x.checked;capDem()});
         return el('label',{style:'display:flex;gap:10px;align-items:center;margin:4px 0'},[x,el('span',{text:u.ten+(qtv?' (quản trị – luôn thấy)':'')})]);
       }));
-      var mo=el('details',{style:'margin-top:10px'},[el('summary',{style:'cursor:pointer'},[el('b',{text:(c.ma==='BB'?'📋 ':'🗺️ ')+c.ten}),dem]),ds]);
+      var mo=el('details',{style:'margin-top:10px'},[el('summary',{style:'cursor:pointer'},[el('b',{text:({BB:'📋 ',BD:'🗺️ ',VB:'⚖️ '}[c.ma]||'🧪 ')+c.ten}),dem]),ds]);
       return mo;
     }));
     var rgBtn=el('button',{class:'p',text:'Lưu',onclick:function(){

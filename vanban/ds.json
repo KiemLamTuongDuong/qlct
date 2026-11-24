@@ -1,0 +1,82 @@
+{
+ "vb": [
+  {
+   "ma": "luat-ln",
+   "ten": "Luật Lâm nghiệp",
+   "so": "16/2017/QH14",
+   "loai": "Luật",
+   "nhom": "Luật",
+   "ngay": "15/11/2017",
+   "tom": "Luật Lâm nghiệp (văn bản hợp nhất số 68/VBHN-VPQH ngày 24/3/2026)",
+   "ban": "70395b7a",
+   "kb": 222
+  },
+  {
+   "ma": "nd146-2026",
+   "ten": "Nghị định 146/2026/NĐ-CP",
+   "so": "146/2026/NĐ-CP",
+   "loai": "Nghị định",
+   "nhom": "Nghị định",
+   "ngay": "06/5/2026",
+   "tom": "Quy định xử phạt vi phạm hành chính trong lĩnh vực lâm nghiệp",
+   "ban": "8621519e",
+   "kb": 269
+  },
+  {
+   "ma": "nd58-2024",
+   "ten": "Nghị định 58/2024/NĐ-CP",
+   "so": "58/2024/NĐ-CP",
+   "loai": "Nghị định",
+   "nhom": "Nghị định",
+   "ngay": "24/5/2024",
+   "tom": "Về một số chính sách đầu tư trong lâm nghiệp (văn bản hợp nhất 15/VBHN-BNNMT, gồm sửa đổi bởi NĐ 42/2026/NĐ-CP)",
+   "ban": "67265046",
+   "kb": 233
+  },
+  {
+   "ma": "tt15-2019",
+   "ten": "Thông tư 15/2019/TT-BNNPTNT",
+   "so": "15/2019/TT-BNNPTNT",
+   "loai": "Thông tư",
+   "nhom": "Thông tư",
+   "ngay": "30/10/2019",
+   "tom": "Hướng dẫn một số nội dung quản lý đầu tư công trình lâm sinh (văn bản hợp nhất 04/VBHN-BNNPTNT, gồm TT 22/2023 và TT 24/2024)",
+   "ban": "97e9c568",
+   "kb": 113
+  },
+  {
+   "ma": "tt16-2025",
+   "ten": "Thông tư 16/2025/TT-BNNMT",
+   "so": "16/2025/TT-BNNMT",
+   "loai": "Thông tư",
+   "nhom": "Thông tư",
+   "ngay": "19/6/2025",
+   "tom": "Quy định về phân quyền, phân cấp, phân định thẩm quyền quản lý nhà nước và một số nội dung trong lĩnh vực lâm nghiệp và kiểm lâm",
+   "ban": "543e4042",
+   "kb": 190
+  },
+  {
+   "ma": "tt16-2025-pl",
+   "ten": "Phụ lục Thông tư 16/2025/TT-BNNMT",
+   "so": "16/2025/TT-BNNMT",
+   "loai": "Phụ lục",
+   "nhom": "Thông tư",
+   "ngay": "19/6/2025",
+   "tom": "Các phụ lục, mẫu biểu ban hành kèm theo Thông tư 16/2025/TT-BNNMT",
+   "ban": "7bfc0b90",
+   "kb": 526,
+   "cha": "tt16-2025"
+  },
+  {
+   "ma": "tt84-2025",
+   "ten": "Thông tư 84/2025/TT-BNNMT",
+   "so": "84/2025/TT-BNNMT",
+   "loai": "Thông tư",
+   "nhom": "Thông tư",
+   "ngay": "31/12/2025",
+   "tom": "Quy định chi tiết một số nội dung của Luật Lâm nghiệp và sửa đổi, bổ sung một số Thông tư trong lĩnh vực lâm nghiệp và kiểm lâm (văn bản hợp nhất, gồm QĐ 282/QĐ-BNNMT, TT 31/2026/TT-BNNMT)",
+   "ban": "25e04e93",
+   "kb": 130
+  }
+ ]
+}
