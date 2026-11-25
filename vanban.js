@@ -96,9 +96,9 @@ function tenNgan(d){return d.loai==='Luật'?d.ten:d.ten}
 
 /* mã định vị → lời trích dẫn: d20k3-b → "điểm b khoản 3 Điều 20"; d20k1a → "khoản 1a Điều 20" */
 function loiTrich(id){
-  var m=/^d(\d+[a-z]?)(?:k(\d+[a-z]?)(?:-(dd|[a-z]))?)?$/.exec(id||'');
-  if(!m){var p=/^(?:pl([IVXLC]+[A-Z]?)-?)?(?:m(\d+\w*))?$/.exec(id||'');
-    if(p&&(p[1]||p[2]))return (p[2]?'Mẫu số '+p[2].replace(/-\d+$/,'')+(p[1]?' ':''):'')+(p[1]?'Phụ lục '+p[1]:'');return ''}
+  var m=/^d(\d+[a-zđ]?)(?:k(\d+[a-zđ]?)(?:-(dd|[a-z]))?)?$/.exec(id||'');
+  if(!m){var p=/^(?:pl([IVXLC]+[A-Z]?)-?)?(?:m(\d+[\w-]*))?(?:-cu\d+)?$/.exec(id||'');
+    if(p&&(p[1]||p[2]))return (p[2]?'Mẫu số '+p[2].replace(/-.*$/,'')+(p[1]?' ':''):'')+(p[1]?'Phụ lục '+p[1]:'');return ''}
   var s='Điều '+m[1];
   if(m[2]&&m[2]!=='0')s='khoản '+m[2]+' '+s;
   if(m[3])s='điểm '+(m[3]==='dd'?'đ':m[3])+' '+s;
@@ -377,7 +377,7 @@ function mucLuc(d,goc){
     if(n.l==='C')r=el('div',{class:'ml-c'},[]),r.innerHTML='Chương '+n.so+(n.t?' – '+n.t:'');
     else if(n.l==='M')r=el('div',{class:'ml-m'}),r.innerHTML='Mục '+n.so+(n.t?'. '+n.t:'');
     else if(n.l==='D')r=el('div',{class:'ml-d'}),r.innerHTML='<b>Điều '+n.so+'.</b> '+(n.t||'');
-    else if(n.l==='P')r=el('div',{class:'ml-d pl'}),r.innerHTML='<b>Phụ lục '+(n.so||'')+'</b>'+(n.t?' – '+n.t:'');
+    else if(n.l==='P')r=el('div',{class:'ml-d pl'}),r.innerHTML='<b>Phụ lục '+(n.so||'')+'</b>'+(n.t?' – '+n.t:'')+(n.kt?'<div style="font-size:13px;color:var(--mut);font-style:italic">'+esc(n.kt)+'</div>':'');
     else if(n.l==='MS')r=el('div',{class:'ml-d pl ms'}),r.innerHTML='<b>Mẫu số '+n.so+'</b>'+(n.t?' – '+n.t:'');
     else if(n.l==='MD')r=el('div',{class:'ml-d'},[el('i',{text:'Căn cứ ban hành'})]);
     if(!r)return;

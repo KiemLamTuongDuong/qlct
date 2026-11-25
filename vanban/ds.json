@@ -8,8 +8,8 @@
    "nhom": "Luật",
    "ngay": "15/11/2017",
    "tom": "Luật Lâm nghiệp (văn bản hợp nhất số 68/VBHN-VPQH ngày 24/3/2026)",
-   "ban": "70395b7a",
-   "kb": 222
+   "ban": "24d516ff",
+   "kb": 213
   },
   {
    "ma": "nd146-2026",
@@ -23,6 +23,40 @@
    "kb": 269
   },
   {
+   "ma": "nd156-2018",
+   "ten": "Nghị định 156/2018/NĐ-CP",
+   "so": "156/2018/NĐ-CP",
+   "loai": "Nghị định",
+   "nhom": "Nghị định",
+   "ngay": "16/11/2018",
+   "tom": "Quy định chi tiết thi hành một số điều của Luật Lâm nghiệp (văn bản hợp nhất 13/VBHN-BNNMT ngày 06/02/2026, gồm sửa đổi bởi NĐ 91/2024, 183/2025, 227/2025, 42/2026)",
+   "ban": "53289e48",
+   "kb": 535
+  },
+  {
+   "ma": "nd156-2018-pl",
+   "ten": "Phụ lục Nghị định 156/2018/NĐ-CP",
+   "so": "156/2018/NĐ-CP",
+   "loai": "Phụ lục",
+   "nhom": "Nghị định",
+   "ngay": "16/11/2018",
+   "tom": "Các phụ lục, mẫu biểu kèm theo Nghị định 156/2018/NĐ-CP (văn bản hợp nhất)",
+   "ban": "1f761628",
+   "kb": 551,
+   "cha": "nd156-2018"
+  },
+  {
+   "ma": "nd01-2019",
+   "ten": "Nghị định 01/2019/NĐ-CP",
+   "so": "01/2019/NĐ-CP",
+   "loai": "Nghị định",
+   "nhom": "Nghị định",
+   "ngay": "01/01/2019",
+   "tom": "Về Kiểm lâm và Lực lượng chuyên trách bảo vệ rừng (văn bản hợp nhất, gồm sửa đổi bởi NĐ 159/2024, 42/2026)",
+   "ban": "bfea57a2",
+   "kb": 53
+  },
+  {
    "ma": "nd58-2024",
    "ten": "Nghị định 58/2024/NĐ-CP",
    "so": "58/2024/NĐ-CP",
@@ -30,19 +64,8 @@
    "nhom": "Nghị định",
    "ngay": "24/5/2024",
    "tom": "Về một số chính sách đầu tư trong lâm nghiệp (văn bản hợp nhất 15/VBHN-BNNMT, gồm sửa đổi bởi NĐ 42/2026/NĐ-CP)",
-   "ban": "67265046",
-   "kb": 233
-  },
-  {
-   "ma": "tt15-2019",
-   "ten": "Thông tư 15/2019/TT-BNNPTNT",
-   "so": "15/2019/TT-BNNPTNT",
-   "loai": "Thông tư",
-   "nhom": "Thông tư",
-   "ngay": "30/10/2019",
-   "tom": "Hướng dẫn một số nội dung quản lý đầu tư công trình lâm sinh (văn bản hợp nhất 04/VBHN-BNNPTNT, gồm TT 22/2023 và TT 24/2024)",
-   "ban": "97e9c568",
-   "kb": 113
+   "ban": "9a90a385",
+   "kb": 225
   },
   {
    "ma": "tt16-2025",
@@ -52,7 +75,7 @@
    "nhom": "Thông tư",
    "ngay": "19/6/2025",
    "tom": "Quy định về phân quyền, phân cấp, phân định thẩm quyền quản lý nhà nước và một số nội dung trong lĩnh vực lâm nghiệp và kiểm lâm",
-   "ban": "543e4042",
+   "ban": "444cbaac",
    "kb": 190
   },
   {
@@ -63,8 +86,8 @@
    "nhom": "Thông tư",
    "ngay": "19/6/2025",
    "tom": "Các phụ lục, mẫu biểu ban hành kèm theo Thông tư 16/2025/TT-BNNMT",
-   "ban": "7bfc0b90",
-   "kb": 526,
+   "ban": "bc81574a",
+   "kb": 528,
    "cha": "tt16-2025"
   },
   {
@@ -75,8 +98,30 @@
    "nhom": "Thông tư",
    "ngay": "31/12/2025",
    "tom": "Quy định chi tiết một số nội dung của Luật Lâm nghiệp và sửa đổi, bổ sung một số Thông tư trong lĩnh vực lâm nghiệp và kiểm lâm (văn bản hợp nhất, gồm QĐ 282/QĐ-BNNMT, TT 31/2026/TT-BNNMT)",
-   "ban": "25e04e93",
-   "kb": 130
+   "ban": "a273caa7",
+   "kb": 126
+  },
+  {
+   "ma": "tt29-2018",
+   "ten": "Thông tư 29/2018/TT-BNNPTNT",
+   "so": "29/2018/TT-BNNPTNT",
+   "loai": "Thông tư",
+   "nhom": "Thông tư",
+   "ngay": "16/11/2018",
+   "tom": "Quy định về các biện pháp lâm sinh (văn bản hợp nhất 03/VBHN-BNNPTNT ngày 15/01/2025, gồm TT 17/2022, TT 24/2024)",
+   "ban": "2435e781",
+   "kb": 74
+  },
+  {
+   "ma": "tt15-2019",
+   "ten": "Thông tư 15/2019/TT-BNNPTNT",
+   "so": "15/2019/TT-BNNPTNT",
+   "loai": "Thông tư",
+   "nhom": "Thông tư",
+   "ngay": "30/10/2019",
+   "tom": "Hướng dẫn một số nội dung quản lý đầu tư công trình lâm sinh (văn bản hợp nhất 04/VBHN-BNNPTNT, gồm TT 22/2023 và TT 24/2024)",
+   "ban": "74c33999",
+   "kb": 113
   }
  ]
 }
