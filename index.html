@@ -151,7 +151,7 @@ table.hat .me td.nm{background:#e6f2ea;font-weight:bold}
 .xlov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:70;display:flex;align-items:flex-end;justify-content:center}
 .xlbox{background:#fff;border-radius:16px 16px 0 0;padding:18px 16px 22px;width:100%;max-width:520px}
 .xlbox button{width:100%}
-.lsr{display:flex;gap:8px;align-items:flex-end;margin-top:10px}.lsl i{color:#c0392b;font-style:normal}.lsr>div{min-width:0}.lsr input,.lsr select{width:100%;box-sizing:border-box}.lsl{font-size:13px;margin-bottom:2px}.cgd.lsr{margin:6px 0 0}.ctd{border-left:3px solid #cfe3d6;padding:2px 0 8px 10px;margin-top:10px}.sltt{margin-top:4px;line-height:1.45}.sltt b{color:#2c5e3f;font-weight:600}.lsr .lsl{font-size:14px;font-weight:600;color:#33443b;line-height:1.25}.cgx{padding:8px 12px}.khdau .hd{font-size:19px}.khchon{display:flex;gap:10px;align-items:flex-start;margin-top:14px;cursor:pointer}.khchon input{width:20px;height:20px;margin-top:3px;flex:0 0 auto}.khlo{margin:6px 0 0 30px}.khurl{font-size:13px;color:#456;margin:6px 0}.pick label.pkall{position:sticky;top:0;background:#fff;z-index:1;border-bottom:1px solid var(--line)}
+.lsr{display:flex;gap:8px;align-items:flex-end;margin-top:10px}.lsl i{color:#c0392b;font-style:normal}.lsr>div{min-width:0}.lsr input,.lsr select{width:100%;box-sizing:border-box}.lsl{font-size:13px;margin-bottom:2px}.cgd.lsr{margin:6px 0 0}.dgtb td,.dgtb th{text-align:center;white-space:nowrap}.dgtb td.tn{text-align:left;white-space:normal}.dgdb{font-size:13px}.dgtb .chip{margin:0;font-size:13px;padding:3px 8px;white-space:nowrap}.dgtb td,.dgtb th{padding:6px 5px}.dgtb td:not(.tn){text-align:center}.dgok{background:#e3f3e8;color:#1f6b3a}.dgno{background:#fdecea;color:#b03a2e}.dgthieu{color:#b03a2e;font-weight:600}.dgtom{margin:6px 0}.dgtong td{font-weight:700;background:#f3f7f4}.ctd{border-left:3px solid #cfe3d6;padding:2px 0 8px 10px;margin-top:10px}.sltt{margin-top:4px;line-height:1.45}.sltt b{color:#2c5e3f;font-weight:600}.lsr .lsl{font-size:14px;font-weight:600;color:#33443b;line-height:1.25}.cgx{padding:8px 12px}.khdau .hd{font-size:19px}.khchon{display:flex;gap:10px;align-items:flex-start;margin-top:14px;cursor:pointer}.khchon input{width:20px;height:20px;margin-top:3px;flex:0 0 auto}.khlo{margin:6px 0 0 30px}.khurl{font-size:13px;color:#456;margin:6px 0}.pick label.pkall{position:sticky;top:0;background:#fff;z-index:1;border-bottom:1px solid var(--line)}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#1d2b24;color:#fff;padding:12px 18px;border-radius:12px;font-size:16px;z-index:60;max-width:90%}
 .capnhat{position:fixed;left:0;right:0;bottom:0;background:#fff8e1;border-top:2px solid #e0b000;padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:center;z-index:70;font-size:16px}
 .capnhat .p{width:auto;padding:8px 16px}
@@ -408,7 +408,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='4.2';
+var BAN_APP='4.3';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -2711,6 +2711,61 @@ function khttBang(r){
   tai();
   return box;
 }
+/* Đánh giá tuần tra, tuyên truyền của kiểm lâm địa bàn: chỉ tiêu mỗi tháng (r.danhGia.chiTieu); kỳ tháng / quý / năm (BC.dg) */
+function dgKetQua(r,o,m){   // m: các tháng (0–11) đã qua của kỳ → {tt, pl, ctTt, ctPl, dat, thangDat, n, dang}
+  var D=r.danhGia,ct=D.chiTieu,hn=D.homNay||'',namNay=+hn.slice(0,4)===D.nam,thNay=+hn.slice(5,7)-1;
+  var tt=0,pl=0,dat=0,dang=false;
+  m.forEach(function(i){var a=Number(o.tt[i])||0,b=Number(o.pl[i])||0;tt+=a;pl+=b;if(a>=ct.tt&&b>=ct.pl)dat++;else if(namNay&&i===thNay)dang=true});
+  return {tt:tt,pl:pl,ctTt:ct.tt*m.length,ctPl:ct.pl*m.length,n:m.length,thangDat:dat,dat:m.length>0&&dat===m.length,dang:dang};
+}
+function danhGiaBang(r){
+  var D=r.danhGia,box=el('div',{});
+  var hn=D.homNay||'',namNay=+hn.slice(0,4)===D.nam,thNay=namNay?+hn.slice(5,7):12;
+  if(!BC.dg||BC.dg.nam!==D.nam){var t=Math.min(r.ky.den,thNay);BC.dg={nam:D.nam,kieu:'thang',thang:t,quy:Math.ceil(t/3)}}
+  function ve(){
+    var S=BC.dg;box.innerHTML='';
+    var m,nhan;
+    if(S.kieu==='thang'){m=[S.thang-1];nhan='Tháng '+S.thang+'/'+D.nam}
+    else if(S.kieu==='quy'){m=[0,1,2].map(function(i){return (S.quy-1)*3+i});nhan='Quý '+['I','II','III','IV'][S.quy-1]+'/'+D.nam}
+    else{m=[0,1,2,3,4,5,6,7,8,9,10,11];nhan='Năm '+D.nam}
+    var mDa=m.filter(function(i){return i<thNay});   // chỉ tính tháng đã đến
+    box.appendChild(el('div',{class:'tabs cbtab',style:'margin-bottom:4px'},[['thang','Theo tháng'],['quy','Theo quý'],['nam','Theo năm']].map(function(x){
+      return el('button',{class:S.kieu===x[0]?'on':'',text:x[1],onclick:function(){S.kieu=x[0];ve()}})})));
+    var buoc=function(d){if(S.kieu==='thang')S.thang=Math.min(12,Math.max(1,S.thang+d));else S.quy=Math.min(4,Math.max(1,S.quy+d));ve()};
+    box.appendChild(S.kieu==='nam'?el('div',{class:'cbnav'},[el('b',{text:nhan})]):
+      el('div',{class:'cbnav'},[el('button',{class:'s',text:'‹',onclick:function(){buoc(-1)}}),el('b',{text:nhan}),el('button',{class:'s',text:'›',onclick:function(){buoc(1)}})]));
+    if(!mDa.length){box.appendChild(el('div',{class:'mut',text:'Kỳ này chưa đến.'}));return}
+    var ds=D.ds.map(function(o){var k=dgKetQua(r,o,mDa);k.ten=o.ten;k.dia=o.dia;return k})
+      .sort(function(a,b){return (b.dat-a.dat)||(b.thangDat-a.thangDat)||(b.tt+b.pl-a.tt-a.pl)||a.ten.localeCompare(b.ten,'vi')});
+    var soDat=ds.filter(function(x){return x.dat}).length,mot=mDa.length===1;
+    box.appendChild(el('div',{class:'dgtom'},[el('b',{text:'Đạt: '+soDat+'/'+ds.length+' người'}),el('span',{class:'mut',text:' · Chưa đạt: '+(ds.length-soDat)+(ds.some(function(x){return x.dang&&mot})?' (“Chưa đủ”: tháng chưa kết thúc)':'')})]));
+    var t=el('table',{class:'tbl dgtb'}),h=['Họ và tên','Kết quả','Tuần tra','Tuyên truyền'].concat(mot?[]:['Tháng đạt']);
+    t.appendChild(el('tr',{},h.map(function(x){return el('th',{text:x})})));
+    ds.forEach(function(x,i){
+      var o1=x.tt>=x.ctTt,o2=x.pl>=x.ctPl;
+      var kq=x.dat?el('span',{class:'chip dgok',text:'Đạt'}):el('span',{class:'chip dgno',text:x.dang&&mot?'Chưa đủ':'Chưa đạt',title:x.dang&&mot?'Tháng chưa kết thúc':''});
+      var row=[el('td',{class:'tn'},[el('div',{text:(i+1)+'. '+x.ten}),el('div',{class:'mut dgdb',text:x.dia})]),el('td',{},[kq]),
+        el('td',{class:o1?'':'dgthieu',text:fmtG(x.tt)+'/'+x.ctTt}),el('td',{class:o2?'':'dgthieu',text:fmtG(x.pl)+'/'+x.ctPl})];
+      if(!mot)row.push(el('td',{text:x.thangDat+'/'+x.n}));
+      t.appendChild(el('tr',{},row));
+    });
+    box.appendChild(el('div',{class:'cbcuon'},[t]));
+  }
+  ve();
+  return box;
+}
+function chiTraBang(r){
+  var tr=function(x){return fmtN(x/1e6,1)},T={hg_ng:0,hg_dt:0,hg_tien:0,cd_so:0,cd_dt:0,cd_tien:0};
+  r.chiTra.forEach(function(x){Object.keys(T).forEach(function(k){T[k]+=x[k]})});
+  var t=el('table',{class:'tbl dgtb'});
+  t.appendChild(el('tr',{},[el('th',{rowspan:'2',text:'Chương trình'}),el('th',{colspan:'3',text:'Hộ gia đình'}),el('th',{colspan:'3',text:'Cộng đồng'}),el('th',{rowspan:'2',text:'Tổng tiền (triệu đ)'})]));
+  t.appendChild(el('tr',{},['Số người','Diện tích (ha)','Tiền (triệu đ)','Số CĐ','Diện tích (ha)','Tiền (triệu đ)'].map(function(x){return el('th',{text:x})})));
+  r.chiTra.concat([Object.assign({ct:'Tổng cộng',tong:true},T)]).forEach(function(x){
+    t.appendChild(el('tr',{class:x.tong?'dgtong':''},[el('td',{class:'tn',text:x.ct}),el('td',{text:fmtN(x.hg_ng)}),el('td',{text:fmtN(x.hg_dt,1)}),el('td',{text:tr(x.hg_tien)}),
+      el('td',{text:fmtN(x.cd_so)}),el('td',{text:fmtN(x.cd_dt,1)}),el('td',{text:tr(x.cd_tien)}),el('td',{text:tr(x.hg_tien+x.cd_tien)})]));
+  });
+  return el('div',{class:'cbcuon'},[t]);
+}
 function bcRender(r){
   var nam=el('input',{type:'number',value:String(BC.nam),min:'2000',max:'2100'});
   var mk=function(v){var s=el('select',{});for(var m=1;m<=12;m++)s.appendChild(el('option',{value:String(m),text:'Tháng '+m}));s.value=String(v);return s};
@@ -2739,7 +2794,7 @@ function bcRender(r){
     ['Tập huấn LL khác (lớp)',fmtN(k.th_lop),fmtN(k.th_ng)+' người tham gia'],
     ['Vụ vi phạm xử lý',fmtN(k.vp_vu),'Nộp NSNN '+fmtN(k.vp_tien)+' đ'],
     ['Gỗ khai thác (M3)',fmtN(k.kt_rt+k.kt_cay,1),'RT '+fmtN(k.kt_rt,1)+' · cây PT '+fmtN(k.kt_cay,1)],
-    ['Trồng rừng (ha)',fmtN(k.tr_rung,1),fmtN(k.tr_cay)+' cây phân tán'],
+    ['Trồng rừng (ha)',fmtN(k.tr_rung+(k.tr_ph||0),1),'Tập trung '+fmtN(k.tr_rung,1)+' · PH/ĐD '+fmtN(k.tr_ph||0,1)+' · '+fmtN(k.tr_cay)+' cây PT'],
     ['Chi trả BVR (triệu đ)',fmtN((k.hg_tien+k.cd_tien)/1e6,1),'Hộ GĐ '+fmtN(k.hg_tien/1e6,1)+' · CĐ '+fmtN(k.cd_tien/1e6,1)],
     ['Rừng bị phá/cháy (m2)',fmtN(k.vp_m2),'Gỗ vi phạm '+fmtN(k.vp_m3,1)+' M3'],
     ['Diễn biến rừng (ha)',fmtN(k.dbr,1),fmtN(k.dbr_lo)+' lô cập nhật'],
@@ -2765,7 +2820,7 @@ function bcRender(r){
     ch.push(chartCard('Gỗ khai thác theo địa bàn (M3)',chartH(X('kt'),[{n:'Gỗ khai thác',c:ONE}],1)));
     ch.push(chartCard('Khai thác gỗ theo tháng (M3) – năm '+r.thang.nam,chartV([r.thang.kt],[{n:'Gỗ khai thác',c:ONE}],1,hl)));
     // nhóm 3: phát triển rừng, diễn biến rừng
-    ch.push(chartCard('Trồng rừng theo địa bàn (ha)',chartH(X('tr'),[{n:'Trồng rừng',c:ONE}],1)));
+    ch.push(chartCard('Trồng rừng theo địa bàn (ha)',chartH(r.xa.map(function(x){return {l:x.ten,v:[x.tr,x.trph||0]}}),[{n:'Rừng tập trung',c:SER[0]},{n:'Phòng hộ, đặc dụng',c:SER[1]}],1)));
     ch.push(chartCard('Diễn biến rừng theo địa bàn (ha)',chartH(X('dbr'),[{n:'Diện tích',c:ONE}],1)));
     // nhóm 4: chi trả, nhiệm vụ
     ch.push(chartCard('Chi trả BVR theo địa bàn (triệu đồng)',chartH(X('ct'),[{n:'Chi trả',c:ONE}],1)));
@@ -2779,11 +2834,13 @@ function bcRender(r){
     ch.push(chartCard('Số vụ vi phạm theo tháng – năm '+r.thang.nam,chartV([r.thang.vp],[{n:'Số vụ',c:ONE}],0,hl)));
     ch.push(chartCard('Nhiệm vụ theo trạng thái (theo hạn trong kỳ)',chartDonut(nvParts)));
   }
+  if(r.danhGia&&r.danhGia.ds.length)ch.push(chartCard('Đánh giá tuần tra, tuyên truyền của kiểm lâm địa bàn',danhGiaBang(r),'Chỉ tiêu mỗi người mỗi tháng: '+r.danhGia.chiTieu.tt+' đợt tuần tra, '+r.danhGia.chiTieu.pl+' đợt tuyên truyền (theo nhật ký, kể cả đi cùng). Không đủ chỉ tiêu: chưa đạt. Theo quý/năm: đạt khi mọi tháng đều đạt.','full'));
+  if(r.chiTra&&r.chiTra.length)ch.push(chartCard('Chi trả BVR theo chương trình',chiTraBang(r),'Theo "Chi tiết theo chương trình" ở Số liệu tháng (xã và chủ rừng). Số liệu nhập trước khi có chương trình ghi "Chưa ghi chương trình".','full'));
   ch.push(chartCard('Kế hoạch tuần tra rừng',khttBang(r),null,'full'));
   nodes.push(el('div',{class:'chg'},ch));
   if(r.pham==='hat'){
     nodes.push(el('div',{class:'card'},[el('div',{class:'gt',text:'Bảng số liệu theo địa bàn (xã)'}),
-      tbl(['Xã','Tuần tra','Tuyên truyền','Tập huấn','Vụ VP','Gỗ M3','Trồng ha','DBR ha','Chi trả (tr)'],r.xa.map(function(x){return [x.ten,fmtN(x.tt),fmtN(x.pl),fmtN(x.th),fmtN(x.vp),fmtN(x.kt,1),fmtN(x.tr,1),fmtN(x.dbr,1),fmtN(x.ct,1)]}))]));
+      tbl(['Xã','Tuần tra','Tuyên truyền','Tập huấn','Vụ VP','Gỗ M3','Trồng ha','Trồng PH/ĐD ha','DBR ha','Chi trả (tr)'],r.xa.map(function(x){return [x.ten,fmtN(x.tt),fmtN(x.pl),fmtN(x.th),fmtN(x.vp),fmtN(x.kt,1),fmtN(x.tr,1),fmtN(x.trph||0,1),fmtN(x.dbr,1),fmtN(x.ct,1)]}))]));
     nodes.push(el('div',{class:'card'},[el('div',{class:'gt',text:'Bảng theo đối tượng'}),
       tbl(['Đối tượng','Tuần tra (đợt)','Số người','Tuyên truyền (đợt)','Số người'],r.dt.map(function(x){return [x.ten,fmtN(x.tt),fmtN(x.tt_ng),fmtN(x.pl),fmtN(x.pl_ng)]}))]));
   }
@@ -3377,7 +3434,7 @@ function xuatBaoCao(r){
   var C=[['Tuần tra','đợt',k.tt_dot],['Tuần tra – lượt người tham gia','lượt',k.tt_ng],['Tuyên truyền pháp luật','đợt',k.pl_dot],['Tuyên truyền – lượt người nghe','lượt',k.pl_ng],
     ['Tập huấn lực lượng khác','lớp',k.th_lop],['Tập huấn – người tham gia','người',k.th_ng],['Vụ vi phạm đã xử lý','vụ',k.vp_vu],['Nộp ngân sách nhà nước','đồng',k.vp_tien],
     ['Rừng bị phá, cháy','m2',k.vp_m2],['Gỗ vi phạm','M3',k.vp_m3],['Gỗ khai thác rừng trồng','M3',k.kt_rt],['Gỗ khai thác cây phân tán','M3',k.kt_cay],
-    ['Trồng rừng','ha',k.tr_rung],['Trồng cây phân tán','cây',k.tr_cay],['Chi trả DVMTR – hộ gia đình','đồng',k.hg_tien],['Chi trả DVMTR – cộng đồng','đồng',k.cd_tien],
+    ['Trồng rừng tập trung','ha',k.tr_rung],['Trồng rừng phòng hộ, đặc dụng','ha',k.tr_ph||0],['Trồng cây phân tán','cây',k.tr_cay],['Chi trả BVR – hộ gia đình','đồng',k.hg_tien],['Chi trả BVR – cộng đồng','đồng',k.cd_tien],
     ['Diễn biến rừng','ha',k.dbr],['Diễn biến rừng – số lô cập nhật','lô',k.dbr_lo],['Số buổi làm việc','buổi',k.buoi],['Nghỉ','ngày',k.nghi],
     ['Nhiệm vụ có hạn trong kỳ','nhiệm vụ',nv.tong],['– Hoàn thành đúng hạn','nhiệm vụ',nv.ht],['– Hoàn thành chậm','nhiệm vụ',nv.cham],['– Chưa hoàn thành (quá hạn)','nhiệm vụ',nv.chua],['– Đang thực hiện','nhiệm vụ',nv.dang]];
   bang('Tổng hợp','BÁO CÁO KẾT QUẢ CÔNG TÁC '+ai,['STT','Chỉ tiêu','Đơn vị','Kết quả'],C.map(function(x,i){return [{v:i+1,s:7},x[0],{v:x[1],s:7},xlNum(x[2])||0]}),[6,42,12,18]);
@@ -3386,13 +3443,22 @@ function xuatBaoCao(r){
   bang('Theo tháng','SỐ LIỆU THEO THÁNG NĂM '+T.nam+' – '+ai,['Tháng','Tuần tra (đợt)','Tuyên truyền (đợt)','Tập huấn (lớp)','Vụ vi phạm','Gỗ khai thác (M3)','Trồng rừng (ha)','Diễn biến rừng (ha)'],mo,[14,13,13,13,12,14,13,14],true);
   sheets[sheets.length-1].rows.splice(-2,0,[],[{v:'* Tháng nằm trong kỳ báo cáo.',s:5}]);
   if(r.pham==='hat'){
-    bang('Theo xã','SỐ LIỆU THEO ĐỊA BÀN (XÃ)',['Xã','Tuần tra (đợt)','Tuyên truyền (đợt)','Tập huấn (lớp)','Vụ vi phạm','Gỗ khai thác (M3)','Trồng rừng (ha)','Diễn biến rừng (ha)','Chi trả (triệu đ)'],
-      r.xa.map(function(x){return [x.ten,x.tt,x.pl,x.th,x.vp,x.kt,x.tr,x.dbr,x.ct]}),[22,12,12,12,11,13,12,13,13],true);
+    bang('Theo xã','SỐ LIỆU THEO ĐỊA BÀN (XÃ)',['Xã','Tuần tra (đợt)','Tuyên truyền (đợt)','Tập huấn (lớp)','Vụ vi phạm','Gỗ khai thác (M3)','Trồng rừng tập trung (ha)','Trồng rừng PH, ĐD (ha)','Diễn biến rừng (ha)','Chi trả (triệu đ)'],
+      r.xa.map(function(x){return [x.ten,x.tt,x.pl,x.th,x.vp,x.kt,x.tr,x.trph||0,x.dbr,x.ct]}),[22,12,12,12,11,13,13,13,13,13],true);
     bang('Theo đối tượng','TUẦN TRA, TUYÊN TRUYỀN THEO ĐỐI TƯỢNG',['Đối tượng','Tuần tra (đợt)','Số người','Tuyên truyền (đợt)','Số người'],
       r.dt.map(function(x){return [x.ten,x.tt,x.tt_ng,x.pl,x.pl_ng]}),[30,14,12,16,12],true);
   }
   bang('Theo cán bộ',r.pham==='hat'?'SỐ LIỆU THEO CÁN BỘ':'SỐ LIỆU CỦA '+String(r.ten||'').toLocaleUpperCase('vi'),['Cán bộ','Địa bàn','Tuần tra','Tuyên truyền','Tập huấn','Vụ VP','Số buổi','Nghỉ (ngày)','Nhiệm vụ','Đã xong','Quá hạn'],
     r.nguoi.map(function(p){return [p.ten,p.dia||'',p.tt,p.pl,p.th,p.vp,p.buoi,p.nghi,p.nvTong,p.nvXong,p.nvTre]}),[24,16,10,11,10,9,10,10,10,10,10],r.pham==='hat');
+  if(r.chiTra&&r.chiTra.length)bang('Chi trả theo chương trình','CHI TRẢ BẢO VỆ RỪNG THEO CHƯƠNG TRÌNH',['Chương trình','Hộ GĐ – số người','Hộ GĐ – diện tích (ha)','Hộ GĐ – số tiền (đồng)','Cộng đồng – số CĐ','Cộng đồng – diện tích (ha)','Cộng đồng – số tiền (đồng)','Tổng tiền (đồng)'],
+    r.chiTra.map(function(x){return [x.ct,x.hg_ng,x.hg_dt,x.hg_tien,x.cd_so,x.cd_dt,x.cd_tien,x.hg_tien+x.cd_tien]}),[24,12,13,16,12,13,16,16],true);
+  if(r.danhGia&&r.danhGia.ds.length){   // đánh giá từng tháng của kỳ báo cáo (tháng đã đến)
+    var D=r.danhGia,hn=D.homNay||'',thNay=+hn.slice(0,4)===D.nam?+hn.slice(5,7):12,dgr=[];
+    for(var th=r.ky.tu;th<=Math.min(r.ky.den,thNay);th++)D.ds.forEach(function(o){var x=dgKetQua(r,o,[th-1]);
+      dgr.push([{v:'Tháng '+th,s:7},o.ten,o.dia,x.tt,x.pl,{v:x.dat?'Đạt':(x.dang?'Chưa đủ (đang trong tháng)':'Chưa đạt'),s:7}])});
+    bang('Đánh giá TT-TT','ĐÁNH GIÁ TUẦN TRA, TUYÊN TRUYỀN CỦA KIỂM LÂM ĐỊA BÀN (chỉ tiêu '+D.chiTieu.tt+' đợt tuần tra, '+D.chiTieu.pl+' đợt tuyên truyền/người/tháng)',
+      ['Tháng','Họ và tên','Địa bàn','Tuần tra (đợt)','Tuyên truyền (đợt)','Kết quả'],dgr,[11,24,16,13,15,24]);
+  }
   bang('Nhiệm vụ quá hạn','NHIỆM VỤ QUÁ HẠN CHƯA HOÀN THÀNH',['STT','Nhiệm vụ','Người nhận','Hạn'],
     nv.tre.map(function(t,i){return [{v:i+1,s:7},t.ten,t.nhan,{v:fmtVN(t.han),s:7}]}),[6,50,24,12]);
   bang('Ngày nghỉ','NGÀY NGHỈ THEO LOẠI',['Loại nghỉ','Số ngày'],r.nghiLoai.map(function(x){return [x.ten,x.ngay]}),[30,12],true);
