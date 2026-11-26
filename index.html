@@ -394,7 +394,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='3.4';
+var BAN_APP='3.6';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -408,6 +408,7 @@ try{history.replaceState({qlct:'goc'},'')}catch(e){}
 datChan();
 window.addEventListener('popstate',function(){
   CO_CHAN=false;
+  if(THOAT){try{history.back()}catch(e){}return}   // đang thoát ứng dụng: lùi tiếp ra khỏi ứng dụng
   if(CUR_BACK){datChan();var f=CUR_BACK;f();return}
   // trang chủ: không dựng lại chốt ngay → bấm Quay lại lần nữa (trong 2 giây) thì thoát ứng dụng
   thongBao('Bấm Quay lại lần nữa để thoát',2000);
@@ -682,7 +683,18 @@ function baoTriView(bt){
     el('div',{class:'den',text:bt.den?denBaoTri(bt.den):'(chưa xác định)'}),
     bt.noiDung?el('p',{style:'white-space:pre-wrap',text:bt.noiDung}):null,
     soCho?el('div',{class:'hint',text:'Có '+soCho+' mục ghi khi mất mạng vẫn được giữ trên máy, sẽ tự gửi khi hệ thống hoạt động lại.'}):null,
-    el('p',{style:'margin-top:16px'},[el('button',{class:'p',text:'Thử lại',onclick:boot}),' ',el('button',{class:'s',text:'Đăng xuất',onclick:dangXuat})])])]);
+    el('p',{style:'margin-top:16px'},[el('button',{class:'p',text:'Thử lại',onclick:boot}),' ',el('button',{class:'s',text:'Thoát',onclick:thoatApp})])])]);
+}
+/* Thoát ứng dụng (không đăng xuất): đóng cửa sổ; trình duyệt không cho đóng thì bỏ chốt "Quay lại" để bấm Quay lại một lần là thoát */
+var THOAT=false;
+function thoatApp(){
+  try{window.close()}catch(e){}
+  setTimeout(function(){
+    if(document.visibilityState==='hidden')return;
+    THOAT=true;CUR_BACK=null;clearTimeout(HEN_CHAN);
+    try{history.back()}catch(e){}
+    setTimeout(function(){if(document.visibilityState!=='hidden')thongBao('Bấm nút Quay lại (◁) của điện thoại hoặc đóng thẻ trình duyệt để thoát.',4000)},600);
+  },300);
 }
 /* thông báo của quản trị trên trang chủ (bấm "Đã xem" thì ẩn trên máy này) */
 function tbDaXemKey(){return 'qlct_tbda:'+((phien()||{}).email||'')}
