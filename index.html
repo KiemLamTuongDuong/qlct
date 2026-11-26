@@ -151,7 +151,7 @@ table.hat .me td.nm{background:#e6f2ea;font-weight:bold}
 .xlov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:70;display:flex;align-items:flex-end;justify-content:center}
 .xlbox{background:#fff;border-radius:16px 16px 0 0;padding:18px 16px 22px;width:100%;max-width:520px}
 .xlbox button{width:100%}
-.lsr{display:flex;gap:8px;align-items:flex-end}.lsr>div{min-width:0}.lsr input,.lsr select{width:100%;box-sizing:border-box}.lsl{font-size:13px;margin-bottom:2px}.cgd{margin-bottom:6px}.cgx{padding:8px 12px}.khdau .hd{font-size:19px}.khurl{font-size:13px;color:#456;margin:6px 0}.pick label.pkall{position:sticky;top:0;background:#fff;z-index:1;border-bottom:1px solid var(--line)}
+.lsr{display:flex;gap:8px;align-items:flex-end}.lsr>div{min-width:0}.lsr input,.lsr select{width:100%;box-sizing:border-box}.lsl{font-size:13px;margin-bottom:2px}.cgd{margin-bottom:6px}.cgx{padding:8px 12px}.khdau .hd{font-size:19px}.khchon{display:flex;gap:10px;align-items:flex-start;margin-top:14px;cursor:pointer}.khchon input{width:20px;height:20px;margin-top:3px;flex:0 0 auto}.khlo{margin:6px 0 0 30px}.khurl{font-size:13px;color:#456;margin:6px 0}.pick label.pkall{position:sticky;top:0;background:#fff;z-index:1;border-bottom:1px solid var(--line)}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#1d2b24;color:#fff;padding:12px 18px;border-radius:12px;font-size:16px;z-index:60;max-width:90%}
 .capnhat{position:fixed;left:0;right:0;bottom:0;background:#fff8e1;border-top:2px solid #e0b000;padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:center;z-index:70;font-size:16px}
 .capnhat .p{width:auto;padding:8px 16px}
@@ -238,7 +238,9 @@ var KHACH_MA=(function(){try{return new URLSearchParams(location.search).get('kh
 function call(action,params,khongXepHang){
   if(KHACH_MA){
     if(!/^SLT_/.test(action))return Promise.resolve({ok:false,message:'Link khách chỉ dùng cho nhập số liệu tháng.'});
-    return post({pwa:1,khach:KHACH_MA,action:action.replace(/^SLT_/,'KH_'),params:params||{}}).then(function(r){
+    params=Object.assign({},params||{});
+    if(KHACH_DV&&action!=='SLT_CAUHINH'){if(!('dt' in params))params.dt=KHACH_DV.dt;if(!params.xa&&!params.dt)params.xa=KHACH_DV.xa}
+    return post({pwa:1,khach:KHACH_MA,action:action.replace(/^SLT_/,'KH_'),params:params}).then(function(r){
       if(r&&r.baoTri&&!r.ok){baoTriView(r.baoTri);return new Promise(function(){})}
       if(r&&r.khachHet){khachHetView(r.message);return new Promise(function(){})}
       return r;
@@ -406,7 +408,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='1.0';
+var BAN_APP='3.9';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -686,13 +688,42 @@ function lienKet(r){
     sel,btn,el('p',{class:'mut'},[el('span',{text:'Không phải tài khoản của bạn? '}),el('span',{class:'link',text:'Đổi tài khoản Google',onclick:dangXuat})])])]);
 }
 
-/* ---------- link khách: chỉ nhập số liệu tháng của một đối tượng (chủ rừng, công ty…) ---------- */
+/* ---------- link khách: khách chọn đơn vị (UBND xã nào / chủ rừng, đơn vị nào) rồi nhập số liệu tháng ---------- */
+var KHACH_DV=null;   // {dt:'' (UBND xã) | tên đơn vị, xa}
+function khachDvKey(){return 'qlct_khach_dv'}
+function khachTenDv(d){return d.dt?d.dt:'UBND xã '+d.xa}
 function khachBoot(){
   show([msgCard('Đang tải…')]);
   call('SLT_CAUHINH').then(function(r){
     if(!r||!r.ok){show([msgCard((r&&r.message)||'Lỗi',true,[retry(khachBoot)])]);return}
-    SLTCFG=r;sltRender('nhap');
+    SLTCFG=r;
+    var d=null;try{d=JSON.parse(localStorage.getItem(khachDvKey())||'null')}catch(e){}
+    if(d&&(d.dt?r.doiTuong.indexOf(d.dt)>=0:r.xaOk.indexOf(d.xa)>=0))khachDatDv(d);else khachChonDv();
   }).catch(function(e){show([msgCard('Lỗi: '+errMsg(e),true,[retry(khachBoot)])])});
+}
+function khachDatDv(d){
+  KHACH_DV={dt:d.dt||'',xa:d.dt?(d.xa||''):d.xa};
+  try{localStorage.setItem(khachDvKey(),JSON.stringify(KHACH_DV))}catch(e){}
+  sltRender('nhap');
+}
+function khachChonDv(){
+  var cu=KHACH_DV||{};
+  var loai1=el('input',{type:'radio',name:'khloai'}),loai2=el('input',{type:'radio',name:'khloai'});
+  var xa=el('select',{},[el('option',{value:'',text:'— Chọn xã —'})].concat(SLTCFG.xaOk.map(function(x){return el('option',{value:x,text:x})})));
+  var dv=el('select',{},[el('option',{value:'',text:'— Chọn đơn vị —'})].concat(SLTCFG.doiTuong.map(function(x){return el('option',{value:x,text:x})})));
+  if(cu.dt){loai2.checked=true;dv.value=cu.dt}else{loai1.checked=true;if(cu.xa)xa.value=cu.xa}
+  var o1=el('div',{class:'khlo'},[xa]),o2=el('div',{class:'khlo'},[dv]);
+  function ve(){o1.style.display=loai1.checked?'':'none';o2.style.display=loai2.checked?'':'none'}
+  loai1.addEventListener('change',ve);loai2.addEventListener('change',ve);ve();
+  var nut=el('button',{class:'p',style:'width:100%;margin-top:14px',text:'Tiếp tục',onclick:function(){
+    if(loai1.checked){if(!xa.value){alert('Vui lòng chọn xã.');return}khachDatDv({dt:'',xa:xa.value})}
+    else{if(!dv.value){alert('Vui lòng chọn đơn vị.');return}khachDatDv({dt:dv.value,xa:''})}
+  }});
+  show([el('div',{class:'card'},[el('p',{class:'hello',text:'Nhập số liệu tháng'}),
+    el('div',{class:'mut',text:'Chọn đơn vị của bạn (máy này sẽ nhớ cho lần sau):'}),
+    el('label',{class:'khchon'},[loai1,el('span',{},[el('b',{text:'UBND xã'}),el('br'),el('span',{class:'mut',text:'Số liệu chung của xã: khai thác, trồng rừng, chi trả DVMTR, giám sát, chữa cháy…'})])]),o1,
+    el('label',{class:'khchon'},[loai2,el('span',{},[el('b',{text:'Chủ rừng / đơn vị khác'}),el('br'),el('span',{class:'mut',text:'Công ty, Ban quản lý rừng, cộng đồng…: tuần tra, tuyên truyền (Công ty: thêm sản xuất cây giống)'})])]),o2,
+    nut])],KHACH_DV?function(){sltRender('nhap')}:null);
 }
 function khachHetView(m){
   show([el('div',{class:'card baotri'},[el('div',{class:'ic',text:'🔗'}),el('p',{class:'hello',text:'Link không còn hiệu lực'}),
@@ -2052,8 +2083,8 @@ function sltRender(tab,preset){
   var t1=el('button',{class:tab==='nhap'?'on':'',text:'Nhập số liệu',onclick:function(){sltRender('nhap')}});
   var t2=el('button',{class:tab==='ds'?'on':'',text:'Đã nhập',onclick:function(){sltRender('ds')}});
   var body=el('div',{});
-  var dau=SLTCFG.khach?el('div',{class:'card khdau'},[el('div',{class:'mut',text:'Nhập số liệu tháng cho'}),el('div',{class:'hd',text:SLTCFG.tenDv||SLTCFG.doiTuong[0]}),
-    SLTCFG.tenDv&&SLTCFG.tenDv!==SLTCFG.doiTuong[0]?el('div',{class:'mut',text:SLTCFG.doiTuong[0]}):null]):null;
+  var dau=SLTCFG.khach&&KHACH_DV?el('div',{class:'card khdau'},[el('div',{class:'top'},[el('div',{},[el('div',{class:'mut',text:'Nhập số liệu tháng cho'}),el('div',{class:'hd',text:khachTenDv(KHACH_DV)})]),
+    el('button',{class:'s',style:'padding:6px 12px;flex:0 0 auto',text:'Đổi đơn vị',onclick:khachChonDv})])]):null;
   show([dau,el('div',{class:'tabs'},[t1,t2]),body],SLTCFG.khach?null:function(){boot()});
   if(tab==='nhap')sltForm(body,preset);else sltList(body);
 }
@@ -2061,10 +2092,11 @@ function sltForm(body,preset){
   preset=preset||{};
   var thang=el('input',{type:'month',value:preset.thang||SLTCFG.thangHienTai});
   if(!SLTCFG.quanTri)thang.setAttribute('max',SLTCFG.thangHienTai);
-  var xa=el('select',{},[el('option',{value:'',text:'— Chọn xã —'})].concat(SLTCFG.xaOk.map(function(x){return el('option',{value:x,text:x})})));
-  xa.value=preset.xa||(SLTCFG.xaOk.indexOf(SLTCFG.dia)>=0?SLTCFG.dia:(SLTCFG.xaOk.length===1?SLTCFG.xaOk[0]:''));
-  var dt=el('select',{},(SLTCFG.khach?[]:[el('option',{value:'',text:'Số liệu chung của xã'})]).concat(SLTCFG.doiTuong.map(function(x){return el('option',{value:x,text:x})})));
-  dt.value=preset.dt||(SLTCFG.khach?SLTCFG.doiTuong[0]:'');if(SLTCFG.khach)dt.disabled=true;
+  var KD=SLTCFG.khach?KHACH_DV:null,xaDs=KD&&!KD.dt?[KD.xa]:SLTCFG.xaOk;
+  var xa=el('select',{},[el('option',{value:'',text:'— Chọn xã —'})].concat(xaDs.map(function(x){return el('option',{value:x,text:x})})));
+  xa.value=preset.xa||(xaDs.indexOf(SLTCFG.dia)>=0?SLTCFG.dia:(xaDs.length===1?xaDs[0]:''));
+  var dt=el('select',{},(KD?[el('option',{value:KD.dt,text:KD.dt||'Số liệu chung của xã (UBND xã)'})]:[el('option',{value:'',text:'Số liệu chung của xã'})].concat(SLTCFG.doiTuong.map(function(x){return el('option',{value:x,text:x})}))));
+  dt.value=preset.dt||(KD?KD.dt:'');if(KD){dt.disabled=true;if(!KD.dt)xa.disabled=true}
   var nguoi=preset.nguoi&&preset.nguoi!==SLTCFG.ten?preset.nguoi:'';
   var banner=el('div',{class:'hint'}),fieldBox=el('div',{}),gc=el('input',{type:'text',placeholder:'Ghi chú (không bắt buộc)'}),msg=el('div',{});
   var token=0,btn=el('button',{class:'p',text:'Lưu số liệu',onclick:save}),CGW=null;
@@ -3600,52 +3632,36 @@ function chepChu(t,ok){
   else prompt('Sao chép link:',t);
 }
 function qtKhachCard(){
-  var vung=el('div',{}),msg=el('div',{}),D=null;
-  function ve(k){
-    D=k;vung.innerHTML='';
-    var dt=el('select',{},[el('option',{value:'',text:'— Chọn đối tượng —'})].concat(k.doiTuong.map(function(x){return el('option',{value:x,text:x})})));
-    var ten=el('input',{type:'text',maxlength:'80',placeholder:'Tên hiển thị (mặc định = tên đối tượng)'});
-    var xaPick=el('div',{class:'pick',style:'max-height:200px'});
-    k.xa.forEach(function(x){xaPick.appendChild(el('label',{},[el('input',{type:'checkbox',value:x}),el('span',{text:x})]))});
-    if(k.xa.length>1)chonCa(xaPick);
-    var tao=el('button',{class:'p',text:'🔗 Tạo link',onclick:function(){
-      if(!dt.value){alert('Vui lòng chọn đối tượng.');return}
-      var xa=Array.prototype.filter.call(xaPick.querySelectorAll('input[value]'),function(c){return c.checked}).map(function(c){return c.value});
-      tao.disabled=true;msg.innerHTML='';
-      call('QT_KHACH',{tao:{dt:dt.value,xa:xa,ten:ten.value}}).then(function(x){tao.disabled=false;
-        if(x&&x.ok){ve(x);msg.appendChild(el('div',{class:'ok',text:'Đã tạo link. Bấm "Sao chép" hoặc "Gửi" ở dòng đầu danh sách để gửi cho đơn vị.'}))}
-        else msg.appendChild(el('div',{class:'bad',text:(x&&x.message)||'Không tạo được.'}));
-      }).catch(function(e){tao.disabled=false;msg.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
-    }});
-    vung.appendChild(el('label',{class:'l',text:'Đối tượng (đơn vị)'}));vung.appendChild(dt);
-    vung.appendChild(el('label',{class:'l',text:'Xã được nhập (không chọn = mọi xã)'}));vung.appendChild(xaPick);
-    vung.appendChild(el('label',{class:'l',text:'Tên hiển thị'}));vung.appendChild(ten);
-    vung.appendChild(el('p',{},[tao]));vung.appendChild(msg);
-    vung.appendChild(el('div',{class:'gt',style:'margin-top:12px',text:'Link đang dùng ('+k.ds.length+')'}));
-    if(!k.ds.length)vung.appendChild(el('div',{class:'mut',text:'Chưa có link nào.'}));
-    k.ds.forEach(function(l){
-      var url=khachLink(l.ma);
-      var nut=[el('button',{class:'s',style:'padding:6px 12px',text:'Sao chép',onclick:function(){chepChu(url,'Đã sao chép link của '+l.ten+'.')}})];
-      if(navigator.share)nut.push(el('button',{class:'s',style:'padding:6px 12px',text:'Gửi',onclick:function(){navigator.share({title:'Nhập số liệu tháng – '+l.ten,text:'Link nhập số liệu tháng cho '+l.ten+' (Hạt Kiểm lâm Tương Dương):',url:url}).catch(function(){})}}));
-      nut.push(el('button',{class:'d',style:'padding:6px 12px',text:'Thu hồi',onclick:function(){
-        if(!confirm('Thu hồi link của "'+l.ten+'"?\nNgười đang giữ link sẽ không nhập được nữa (số liệu đã nhập vẫn giữ nguyên).'))return;
-        call('QT_KHACH',{thuHoi:l.ma}).then(function(x){if(x&&x.ok)ve(x);else alert((x&&x.message)||'Không thu hồi được.')}).catch(function(e){alert(errMsg(e))});
-      }}));
-      vung.appendChild(el('div',{class:'item'},[el('div',{class:'hd',text:l.ten}),
-        l.ten!==l.dt?el('div',{class:'mut',text:l.dt}):null,
-        el('div',{class:'mut',text:'Xã: '+(l.xa.length?l.xa.join(', '):'mọi xã')}),
-        el('div',{class:'mut',text:'Tạo '+fmtVN(l.tao.slice(0,10))+' '+l.tao.slice(11)+(l.boi?' · '+l.boi:'')+' · '+(l.soLuu?'đã lưu '+l.soLuu+' lần, gần nhất '+fmtVN(l.dung.slice(0,10)):'chưa dùng')}),
-        el('input',{type:'text',readonly:'readonly',value:url,class:'khurl',onclick:function(){this.select()}}),
-        el('div',{class:'btns'},nut)]));
-    });
+  var vung=el('div',{}),msg=el('div',{}),da=false;
+  function goi(p,hoi){
+    if(hoi&&!confirm(hoi))return;
+    msg.innerHTML='';
+    call('QT_KHACH',p).then(function(k){if(k&&k.ok){ve(k.link);if(p.tao)msg.appendChild(el('div',{class:'ok',text:'Đã tạo link. Bấm "Sao chép" hoặc "Gửi" để gửi cho UBND xã, chủ rừng.'}))}
+      else msg.appendChild(el('div',{class:'bad',text:(k&&k.message)||'Lỗi'}))}).catch(function(e){msg.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
+  }
+  function ve(l){
+    da=true;vung.innerHTML='';
+    if(!l){vung.appendChild(el('div',{class:'mut',text:'Chưa có link (hoặc đã tắt).'}));
+      vung.appendChild(el('p',{},[el('button',{class:'p',text:'🔗 Tạo link',onclick:function(){goi({tao:1})}})]));vung.appendChild(msg);return}
+    var url=khachLink(l.ma);
+    var nut=[el('button',{class:'s',style:'padding:6px 12px',text:'Sao chép',onclick:function(){chepChu(url,'Đã sao chép link nhập số liệu.')}})];
+    if(navigator.share)nut.push(el('button',{class:'s',style:'padding:6px 12px',text:'Gửi',onclick:function(){navigator.share({title:'Nhập số liệu tháng',text:'Link nhập số liệu tháng gửi Hạt Kiểm lâm Tương Dương (UBND xã, chủ rừng):',url:url}).catch(function(){})}}));
+    vung.appendChild(el('div',{class:'item'},[el('div',{class:'hd',text:'Link đang dùng'}),
+      el('div',{class:'mut',text:'Tạo '+fmtVN(l.tao.slice(0,10))+' '+l.tao.slice(11)+(l.boi?' · '+l.boi:'')+' · '+(l.soLuu?'khách đã lưu '+l.soLuu+' lần, gần nhất '+fmtVN(l.dung.slice(0,10))+' '+l.dung.slice(11):'chưa dùng')}),
+      el('input',{type:'text',readonly:'readonly',value:url,class:'khurl',onclick:function(){this.select()}}),
+      el('div',{class:'btns'},nut)]));
+    vung.appendChild(el('div',{class:'btns',style:'margin-top:8px'},[
+      el('button',{class:'s',style:'padding:6px 12px',text:'Đổi link mới',onclick:function(){goi({tao:1},'Tạo link mới?\nLink cũ sẽ hết hiệu lực, phải gửi lại link mới cho các đơn vị (số liệu đã nhập vẫn giữ nguyên).')}}),
+      el('button',{class:'d',style:'padding:6px 12px',text:'Tắt link',onclick:function(){goi({tat:1},'Tắt link nhập số liệu cho khách?\nKhông ai dùng link này nhập được nữa (số liệu đã nhập vẫn giữ nguyên).')}})]));
+    vung.appendChild(msg);
   }
   function tai(){vung.innerHTML='';vung.appendChild(el('div',{class:'mut',text:'Đang tải…'}));
-    call('QT_KHACH',{xem:1}).then(function(k){if(k&&k.ok)ve(k);else{vung.innerHTML='';vung.appendChild(el('div',{class:'bad',text:(k&&k.message)||'Lỗi'}))}})
+    call('QT_KHACH',{xem:1}).then(function(k){if(k&&k.ok)ve(k.link);else{vung.innerHTML='';vung.appendChild(el('div',{class:'bad',text:(k&&k.message)||'Lỗi'}))}})
       .catch(function(e){vung.innerHTML='';vung.appendChild(el('div',{class:'bad',text:errMsg(e)}))})}
-  var mo=el('details',{},[el('summary',{style:'cursor:pointer',text:'Tạo / quản lý link'}),vung]);
-  mo.addEventListener('toggle',function(){if(mo.open&&!D)tai()});
-  return el('div',{class:'card'},[el('div',{class:'gt',text:'🔗 Link nhập số liệu cho khách, chủ rừng'}),
-    el('div',{class:'hint',text:'Tạo link riêng cho từng đơn vị (Công ty Lâm nghiệp, Ban quản lý rừng, cộng đồng…). Người có link không cần đăng nhập, chỉ vào được màn Nhập số liệu tháng của đúng đơn vị đó (tháng này và 3 tháng trước), không xem được dữ liệu khác. Số liệu ghi với người theo dõi "Khách: <tên>". Lộ link thì Thu hồi rồi tạo link mới.'}),
+  var mo=el('details',{},[el('summary',{style:'cursor:pointer',text:'Xem / tạo link'}),vung]);
+  mo.addEventListener('toggle',function(){if(mo.open&&!da)tai()});
+  return el('div',{class:'card'},[el('div',{class:'gt',text:'🔗 Link nhập số liệu cho UBND xã, chủ rừng'}),
+    el('div',{class:'hint',text:'Một link chung gửi cho UBND các xã và chủ rừng. Người mở link không cần đăng nhập: chọn đơn vị của mình (UBND xã nào → số liệu chung của xã; chủ rừng/đơn vị nào → tuần tra, tuyên truyền, cây giống) rồi nhập số liệu tháng này và 3 tháng trước; chỉ thấy số liệu đơn vị mình đã nhập. Người theo dõi ghi "Khách: <đơn vị>". Lộ link thì bấm "Đổi link mới".'}),
     mo]);
 }
 /* ⚙️ Quản lý → Bảo trì hệ thống */
