@@ -151,7 +151,7 @@ table.hat .me td.nm{background:#e6f2ea;font-weight:bold}
 .xlov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:70;display:flex;align-items:flex-end;justify-content:center}
 .xlbox{background:#fff;border-radius:16px 16px 0 0;padding:18px 16px 22px;width:100%;max-width:520px}
 .xlbox button{width:100%}
-.lsr{display:flex;gap:8px;align-items:flex-end;margin-top:10px}.lsl i{color:#c0392b;font-style:normal}.lsr>div{min-width:0}.lsr input,.lsr select{width:100%;box-sizing:border-box}.lsl{font-size:13px;margin-bottom:2px}.cgd.lsr{margin:6px 0 0}.sltt{margin-top:4px;line-height:1.45}.sltt b{color:#2c5e3f;font-weight:600}.lsr .lsl{font-size:14px;font-weight:600;color:#33443b;line-height:1.25}.cgx{padding:8px 12px}.khdau .hd{font-size:19px}.khchon{display:flex;gap:10px;align-items:flex-start;margin-top:14px;cursor:pointer}.khchon input{width:20px;height:20px;margin-top:3px;flex:0 0 auto}.khlo{margin:6px 0 0 30px}.khurl{font-size:13px;color:#456;margin:6px 0}.pick label.pkall{position:sticky;top:0;background:#fff;z-index:1;border-bottom:1px solid var(--line)}
+.lsr{display:flex;gap:8px;align-items:flex-end;margin-top:10px}.lsl i{color:#c0392b;font-style:normal}.lsr>div{min-width:0}.lsr input,.lsr select{width:100%;box-sizing:border-box}.lsl{font-size:13px;margin-bottom:2px}.cgd.lsr{margin:6px 0 0}.ctd{border-left:3px solid #cfe3d6;padding:2px 0 8px 10px;margin-top:10px}.sltt{margin-top:4px;line-height:1.45}.sltt b{color:#2c5e3f;font-weight:600}.lsr .lsl{font-size:14px;font-weight:600;color:#33443b;line-height:1.25}.cgx{padding:8px 12px}.khdau .hd{font-size:19px}.khchon{display:flex;gap:10px;align-items:flex-start;margin-top:14px;cursor:pointer}.khchon input{width:20px;height:20px;margin-top:3px;flex:0 0 auto}.khlo{margin:6px 0 0 30px}.khurl{font-size:13px;color:#456;margin:6px 0}.pick label.pkall{position:sticky;top:0;background:#fff;z-index:1;border-bottom:1px solid var(--line)}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#1d2b24;color:#fff;padding:12px 18px;border-radius:12px;font-size:16px;z-index:60;max-width:90%}
 .capnhat{position:fixed;left:0;right:0;bottom:0;background:#fff8e1;border-top:2px solid #e0b000;padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:center;z-index:70;font-size:16px}
 .capnhat .p{width:auto;padding:8px 16px}
@@ -408,7 +408,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='4.1';
+var BAN_APP='4.2';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -721,8 +721,8 @@ function khachChonDv(){
   }});
   show([el('div',{class:'card'},[el('p',{class:'hello',text:'Nhập số liệu tháng'}),
     el('div',{class:'mut',text:'Chọn đơn vị của bạn (máy này sẽ nhớ cho lần sau):'}),
-    el('label',{class:'khchon'},[loai1,el('span',{},[el('b',{text:'UBND xã'}),el('br'),el('span',{class:'mut',text:'Số liệu chung của xã: khai thác, trồng rừng, chi trả DVMTR, giám sát, chữa cháy…'})])]),o1,
-    el('label',{class:'khchon'},[loai2,el('span',{},[el('b',{text:'Chủ rừng / đơn vị khác'}),el('br'),el('span',{class:'mut',text:'Công ty, Ban quản lý rừng, cộng đồng…: tuần tra, tuyên truyền (Công ty: thêm sản xuất cây giống)'})])]),o2,
+    el('label',{class:'khchon'},[loai1,el('span',{},[el('b',{text:'UBND xã'}),el('br'),el('span',{class:'mut',text:'Số liệu chung của xã: khai thác, trồng rừng, chi trả BVR, giám sát, chữa cháy, tuần tra, tuyên truyền của xã/cộng đồng…'})])]),o1,
+    el('label',{class:'khchon'},[loai2,el('span',{},[el('b',{text:'Chủ rừng / đơn vị khác'}),el('br'),el('span',{class:'mut',text:'Công ty, Ban quản lý rừng, cộng đồng…: tuần tra, tuyên truyền, trồng rừng phòng hộ/đặc dụng, chi trả BVR, chữa cháy, diễn tập (Công ty: thêm sản xuất cây giống)'})])]),o2,
     nut])],KHACH_DV?function(){sltRender('nhap')}:null);
 }
 function khachHetView(m){
@@ -2099,12 +2099,12 @@ function sltForm(body,preset){
   dt.value=preset.dt||(KD?KD.dt:'');if(KD){dt.disabled=true;if(!KD.dt)xa.disabled=true}
   var nguoi=preset.nguoi&&preset.nguoi!==SLTCFG.ten?preset.nguoi:'';
   var banner=el('div',{class:'hint'}),fieldBox=el('div',{}),gc=el('input',{type:'text',placeholder:'Ghi chú (không bắt buộc)'}),msg=el('div',{});
-  var token=0,btn=el('button',{class:'p',text:'Lưu số liệu',onclick:save}),CGW=null;
+  var token=0,btn=el('button',{class:'p',text:'Lưu số liệu',onclick:save}),CGW=null,CTW=[];
   function drawFields(){
-    fieldBox.innerHTML='';CGW=null;
+    fieldBox.innerHTML='';CGW=null;CTW=[];
     var laCty=!!dt.value&&(SLTCFG.dtCty||[]).indexOf(dt.value)>=0;
     var nhom=(dt.value?SLTCFG.nhomDt:SLTCFG.nhomXa).filter(function(g){return !g.cty||laCty});
-    if(dt.value)fieldBox.appendChild(el('div',{class:'hint',text:laCty?'Công ty ghi số đợt, số người tuần tra, tuyên truyền và sản xuất cây giống.':'Đối tượng này chỉ ghi số đợt và số người tuần tra, tuyên truyền.'}));
+    if(dt.value)fieldBox.appendChild(el('div',{class:'hint',text:'Chủ rừng, đơn vị ghi phần việc của mình: tuần tra, tuyên truyền, trồng rừng phòng hộ/đặc dụng, chi trả BVR, chữa cháy, diễn tập'+(laCty?', sản xuất cây giống.':'. Mục nào không có thì để trống.')}));
     nhom.forEach(function(g){
       fieldBox.appendChild(el('div',{class:'gt',text:g.title}));
       if(g.hint)fieldBox.appendChild(el('div',{class:'hint',text:g.hint}));
@@ -2121,9 +2121,11 @@ function sltForm(body,preset){
         return inp;
       };
       var ks=g.fields.map(function(f){return f.k}),hang=[];
+      var boCot=[];g.fields.forEach(function(f){if(f.t==='ct')boCot=boCot.concat(f.cot||[])});   // tổng chi trả tự cộng từ các dòng chương trình
       var xa_=function(){xepHang(fieldBox,hang,3);hang=[]};
       g.fields.forEach(function(f){
-        if(f.k==='kt_ls_loai'||f.k==='kt_ls_dv'||f.k==='cg_sl')return;
+        if(f.k==='kt_ls_loai'||f.k==='kt_ls_dv'||f.k==='cg_sl'||boCot.indexOf(f.k)>=0)return;
+        if(f.t==='ct'){xa_();var w=chiTraO(f);CTW.push(w);fieldBox.appendChild(w.node);return}
         if(f.k==='cg_ct'){xa_();CGW=cayGiongO(f);fieldBox.appendChild(CGW.node);return}
         if(f.k==='kt_ls'&&ks.indexOf('kt_ls_loai')>=0&&ks.indexOf('kt_ls_dv')>=0){   // lâm sản ngoài gỗ: 3 ô trên một hàng
           xa_();
@@ -2148,6 +2150,7 @@ function sltForm(body,preset){
         banner.textContent='Đã có số liệu của '+(nguoi||'bạn')+' cho kỳ này – đang sửa. Lưu sẽ ghi đè.';
         Array.prototype.forEach.call(fieldBox.querySelectorAll('[data-k]'),function(i){var v=r.f[i.getAttribute('data-k')];i.value=(v===''||v===undefined||v===null)?'':String(v)});
         if(CGW)CGW.set(r.f.cg_ct||'');
+        CTW.forEach(function(w){w.set(r.f[w.k]||'',r.f)});
         gc.value=r.gc||'';
       }else banner.textContent='Chưa có số liệu cho kỳ này – nhập mới.';
     }).catch(function(e){if(my===token){banner.textContent=errMsg(e);banner.className='hint err'}});
@@ -2159,6 +2162,7 @@ function sltForm(body,preset){
     var f={};
     Array.prototype.forEach.call(fieldBox.querySelectorAll('[data-k]'),function(i){f[i.getAttribute('data-k')]=i.value});
     if(CGW)f.cg_ct=CGW.get();
+    CTW.forEach(function(w){f[w.k]=w.get()});
     btn.disabled=true;btn.textContent='Đang lưu…';
     call('SLT_LUU',{thang:thang.value,xa:xa.value,dt:dt.value,f:f,gc:gc.value,nguoi:nguoi}).then(function(r){
       btn.disabled=false;btn.textContent='Lưu số liệu';
@@ -2184,6 +2188,36 @@ function xepHang(box,items,max){
   function day(){if(buf.length){box.appendChild(hangO(buf));buf=[]}}
   items.forEach(function(it){if(it.rieng){day();box.appendChild(hangO([it]));return}buf.push(it);if(buf.length>=max)day()});
   day();
+}
+/* Chi trả BVR theo chương trình: mỗi chương trình một khối (Chương trình | ✕ / 3 ô số), "+ Thêm chương trình"; tổng tự cộng ở máy chủ */
+function chiTraO(f){
+  var ds=el('div',{}),id='gy_'+f.k;
+  var dl=el('datalist',{id:id},(f.goiY||[]).map(function(x){return el('option',{value:x})}));
+  function dong(ct,v){
+    v=v||['','',''];
+    var c=el('input',{type:'text',maxlength:'40',class:'ctten',placeholder:'Chọn hoặc tự nhập'});c.value=ct||'';c.setAttribute('list',id);
+    var o=[0,1,2].map(function(j){var i=el('input',{type:'text',inputmode:f.kieu[j]==='dec'?'decimal':'numeric',class:'ctso'});i.value=v[j]===undefined||v[j]===null?'':String(v[j]);return i});
+    var x=el('button',{type:'button',class:'s cgx',text:'✕',title:'Bỏ chương trình này',onclick:function(){r.remove();if(!ds.children.length)dong()}});
+    var r=el('div',{class:'ctd'},[el('div',{class:'lsr',style:'margin-top:0'},[el('div',{style:'flex:1 1 0'},[el('div',{class:'mut lsl',text:'Chương trình'}),c]),el('div',{style:'flex:0 0 auto'},[x])]),
+      hangO([{lb:f.ten[0],node:o[0]},{lb:f.ten[1],node:o[1]},{lb:f.ten[2],node:o[2],w:1.4}])]);
+    ds.appendChild(r);return r;
+  }
+  function set(txt,tong){
+    ds.innerHTML='';
+    String(txt||'').split('\n').forEach(function(d){
+      if(!d.trim())return;var m=/^(.*?):\s*(.*)$/.exec(d),v=['','',''];
+      if(m)m[2].split(';').forEach(function(ph){var q=/^\s*([\d.]+)\s*(.*?)\s*$/.exec(ph);if(q){var i=f.dv.indexOf(q[2]);if(i>=0)v[i]=q[1].replace('.',',')}});
+      dong(m?m[1]:d,v);
+    });
+    if(!ds.children.length){   // số liệu cũ chưa có chương trình: đưa tổng vào một dòng để chọn chương trình
+      var cu=(f.cot||[]).map(function(k){var x=tong&&tong[k];return x===undefined||x===null?'':String(x).replace('.',',')});
+      dong('',cu);
+    }
+  }
+  function get(){return Array.prototype.map.call(ds.children,function(r){return {ct:r.querySelector('.ctten').value.trim(),v:Array.prototype.map.call(r.querySelectorAll('.ctso'),function(i){return i.value.trim()})}})
+    .filter(function(x){return x.ct||x.v.some(String)})}
+  set('');
+  return {k:f.k,set:set,get:get,node:el('div',{},[ds,dl,el('button',{type:'button',class:'s',style:'margin-top:8px',text:'+ Thêm chương trình',onclick:function(){dong().querySelector('input').focus()}})])};
 }
 /* Sản xuất cây giống: nhiều dòng (số lượng | loài | ✕), "+ Thêm dòng", tổng tự cộng */
 function cayGiongO(f){
