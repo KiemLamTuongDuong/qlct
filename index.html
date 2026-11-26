@@ -151,6 +151,7 @@ table.hat .me td.nm{background:#e6f2ea;font-weight:bold}
 .xlov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:70;display:flex;align-items:flex-end;justify-content:center}
 .xlbox{background:#fff;border-radius:16px 16px 0 0;padding:18px 16px 22px;width:100%;max-width:520px}
 .xlbox button{width:100%}
+.lsr{display:flex;gap:8px;align-items:flex-end}.lsr>div{min-width:0}.lsr input,.lsr select{width:100%;box-sizing:border-box}.lsl{font-size:13px;margin-bottom:2px}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#1d2b24;color:#fff;padding:12px 18px;border-radius:12px;font-size:16px;z-index:60;max-width:90%}
 .capnhat{position:fixed;left:0;right:0;bottom:0;background:#fff8e1;border-top:2px solid #e0b000;padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:center;z-index:70;font-size:16px}
 .capnhat .p{width:auto;padding:8px 16px}
@@ -394,7 +395,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='3.6';
+var BAN_APP='3.7';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -2046,10 +2047,29 @@ function sltForm(body,preset){
       fieldBox.appendChild(el('div',{class:'gt',text:g.title}));
       var ro=g.fields.some(function(f){return f.ro});
       if(ro)fieldBox.appendChild(el('div',{class:'hint',text:'Tự cộng từ nhật ký "Theo dõi, cập nhật diễn biến rừng" (không nhập ở đây). Thiếu thì bổ sung nhật ký.'}));
-      g.fields.forEach(function(f){
-        var inp=el('input',{type:'text',inputmode:f.t==='int'?'numeric':'decimal'});inp.setAttribute('data-k',f.k);
+      var oNhap=function(f){
+        var inp;
+        if(f.t==='sel')inp=el('select',{},[el('option',{value:'',text:'— Chọn —'})].concat((f.opts||[]).map(function(x){return el('option',{value:x,text:x})})));
+        else if(f.t==='text'){inp=el('input',{type:'text',maxlength:'100',placeholder:'Chọn hoặc tự nhập'});
+          if(f.goiY){var id='gy_'+f.k;inp.setAttribute('list',id);fieldBox.appendChild(el('datalist',{id:id},f.goiY.map(function(x){return el('option',{value:x})})))}}
+        else inp=el('input',{type:'text',inputmode:f.t==='int'?'numeric':'decimal'});
+        inp.setAttribute('data-k',f.k);
         if(f.ro){inp.disabled=true;inp.style.background='#f3f6f4'}
-        fieldBox.appendChild(el('label',{class:'l',text:f.label}));fieldBox.appendChild(inp);
+        return inp;
+      };
+      var ks=g.fields.map(function(f){return f.k});
+      g.fields.forEach(function(f){
+        if(f.k==='kt_ls_loai'||f.k==='kt_ls_dv')return;
+        if(f.k==='kt_ls'&&ks.indexOf('kt_ls_loai')>=0&&ks.indexOf('kt_ls_dv')>=0){   // lâm sản ngoài gỗ: 3 ô trên một hàng
+          var fl=g.fields[ks.indexOf('kt_ls_loai')],fd=g.fields[ks.indexOf('kt_ls_dv')];
+          fieldBox.appendChild(el('label',{class:'l',text:'Lâm sản ngoài gỗ'}));
+          fieldBox.appendChild(el('div',{class:'lsr'},[
+            el('div',{style:'flex:1.2 1 0'},[el('div',{class:'mut lsl',text:'Khối lượng/số lượng'}),oNhap(f)]),
+            el('div',{style:'flex:1.6 1 0'},[el('div',{class:'mut lsl',text:'Loại/loài'}),oNhap(fl)]),
+            el('div',{style:'flex:1 1 0'},[el('div',{class:'mut lsl',text:'Đơn vị tính'}),oNhap(fd)])]));
+          return;
+        }
+        fieldBox.appendChild(el('label',{class:'l',text:f.label}));fieldBox.appendChild(oNhap(f));
       });
     });
   }
