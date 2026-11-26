@@ -37,6 +37,9 @@ html.dt-gia header h1{font-size:15.5px}
 html.dt-gia header small{font-size:13.5px}
 main.home{display:flex;flex-direction:column;min-height:calc(100vh - 66px);min-height:calc(100svh - 66px);box-sizing:border-box}
 main.home .chao{padding:10px 14px;margin-bottom:10px}
+.tbqt{border-left:4px solid #2a78d6;padding:10px 14px;margin-bottom:10px}.tbqt .gt{margin:0 0 4px}.tbqt .nd{white-space:pre-wrap;margin:4px 0}
+.btcanh{border-left:4px solid #d9822b;background:#fff7ec;padding:10px 14px;margin-bottom:10px}
+.baotri{text-align:center;padding:28px 18px}.baotri .ic{font-size:56px}.baotri .den{font-size:19px;font-weight:bold;color:#1f5c3a;margin:10px 0}
 main.home .chao .chip{font-size:13px;padding:3px 9px;margin:1px 3px 1px 0}
 main.home .chao .mut{font-size:14px}
 main.home .chao .hello{font-size:20px;margin:0 0 4px}
@@ -245,6 +248,10 @@ function call(action,params,khongXepHang){
     if(r&&r.__offline)return r.__offline;
     if(r&&r.loai==='PHIEN_HET_HAN'){xoaPhien();dangNhapView(r.message);return new Promise(function(){})}
     if(r&&r._token){luuPhien(r._token,r._exp);delete r._token;delete r._exp}
+    if(r&&r.baoTri&&!r.ok&&action!=='ME'&&!(ME&&ME.caps&&ME.caps.quanTri)){
+      if(khongXepHang)return r;                     // hàng chờ: giữ mục lại, gửi sau khi hết bảo trì
+      if(ME)ME.baoTri=r.baoTri;baoTriView(r.baoTri);return new Promise(function(){});
+    }
     if(r&&r.khoa&&typeof r.khoa==='string'&&ME&&ME.state==='OK'){ME.khoa=ME.khoa||{};ME.khoa[r.khoa]=ME.khoa[r.khoa]||{lyDo:''}}
     if(!CHI_DOC[action]&&r&&r.ok){cxoa('v',!GHI_XOA_HET[action]);if(GHI_XOA_HET[action])cxoa('c')}
     return r;
@@ -344,6 +351,7 @@ function dongBo(cb){
     var x=a[i];
     call(x.action,x.params,true).then(function(r){
       var q=hangCho(),k=q.findIndex(function(y){return y.id===x.id});
+      if(r&&r.baoTri&&!r.ok){DANG_GUI=false;PENDING--;dongBoHien();hangChoHien();if(cb)cb();return}   // đang bảo trì: giữ nguyên hàng chờ
       if(r&&r.ok){if(k>=0)q.splice(k,1);ok++}
       else if(k>=0){q[k].loi=(r&&r.message)||'Máy chủ từ chối.';if(r&&r.trung)q[k].loi+=' '+r.trung.map(function(t){return t.ten+' '+fmtVN(t.ngay)+' '+t.buoi+' ('+t.hd+')'}).join('; ')}
       luuHangCho(q);next(i+1);
@@ -386,7 +394,7 @@ window.addEventListener('resize',sauCheDoMayTinh);window.addEventListener('orien
 document.addEventListener('DOMContentLoaded',sauCheDoMayTinh);setTimeout(sauCheDoMayTinh,0);
 
 /* ===== CỠ CHỮ (mỗi máy chọn riêng) ===== */
-var BAN_APP='3.2';
+var BAN_APP='3.4';
 var CO_CHU='1';try{CO_CHU=localStorage.getItem('qlct_cochu')||'1'}catch(e){}
 function apCoChu(){var a=$('app');if(a)a.style.zoom=CO_CHU==='1'?'':CO_CHU}
 function datCoChu(v){CO_CHU=v;try{localStorage.setItem('qlct_cochu',v)}catch(e){}apCoChu()}
@@ -639,6 +647,7 @@ function boot(){
 function route(r){
   if(!r||!r.ok){show([msgCard((r&&r.message)||'Có lỗi xảy ra.',true,[retry(boot)])]);return}
   ME=r;
+  if(r.baoTri&&!(r.caps&&r.caps.quanTri))return baoTriView(r.baoTri);
   if(r.state==='OK'){
     home();if(!window.__lan1){window.__lan1=1;moTheoLienKet();setTimeout(lamMoiToken,2500)}
     hangChoHien();if(!window.__taiSan){window.__taiSan=1;setTimeout(function(){dongBo(taiSan)},1500)}return}
@@ -663,6 +672,33 @@ function lienKet(r){
     sel,btn,el('p',{class:'mut'},[el('span',{text:'Không phải tài khoản của bạn? '}),el('span',{class:'link',text:'Đổi tài khoản Google',onclick:dangXuat})])])]);
 }
 
+/* ---------- bảo trì hệ thống: người dùng chỉ thấy trang này (quản trị vẫn dùng bình thường) ---------- */
+function denBaoTri(den){if(!den)return '';var d=den.split('T'),n=d[0].split('-'),t=new Date(+n[0],+n[1]-1,+n[2]);
+  return d[1]+', '+['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'][t.getDay()]+' '+n[2]+'/'+n[1]+'/'+n[0]}
+function baoTriView(bt){
+  bt=bt||{};var soCho=hangCho().length;
+  show([el('div',{class:'card baotri'},[el('div',{class:'ic',text:'🛠️'}),el('p',{class:'hello',text:'Hệ thống đang bảo trì'}),
+    el('div',{class:'mut',text:'Tạm thời chưa sử dụng được các chức năng. Dự kiến hoàn thành:'}),
+    el('div',{class:'den',text:bt.den?denBaoTri(bt.den):'(chưa xác định)'}),
+    bt.noiDung?el('p',{style:'white-space:pre-wrap',text:bt.noiDung}):null,
+    soCho?el('div',{class:'hint',text:'Có '+soCho+' mục ghi khi mất mạng vẫn được giữ trên máy, sẽ tự gửi khi hệ thống hoạt động lại.'}):null,
+    el('p',{style:'margin-top:16px'},[el('button',{class:'p',text:'Thử lại',onclick:boot}),' ',el('button',{class:'s',text:'Đăng xuất',onclick:dangXuat})])])]);
+}
+/* thông báo của quản trị trên trang chủ (bấm "Đã xem" thì ẩn trên máy này) */
+function tbDaXemKey(){return 'qlct_tbda:'+((phien()||{}).email||'')}
+function tbDaXem(){try{return JSON.parse(localStorage.getItem(tbDaXemKey())||'[]')}catch(e){return []}}
+function tbQtCards(){
+  var da=tbDaXem();
+  return (ME.tbQt||[]).filter(function(t){return da.indexOf(t.ma)<0}).map(function(t){
+    var c=el('div',{class:'card tbqt'},[el('div',{class:'gt',text:'📢 '+t.tieuDe}),el('div',{class:'nd',text:t.noiDung}),
+      el('div',{class:'mut',style:'font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px'},[
+        el('span',{text:(t.boi?t.boi+' · ':'')+(t.luc?fmtVN(t.luc.slice(0,10))+' '+t.luc.slice(11):'')}),
+        el('span',{},[t.mo?el('span',{class:'link',text:'Mở',onclick:function(){({nv:nvHome,lich:lichHome,cm:cmHome}[t.mo]||boot)()}}):null,t.mo?el('span',{text:' · '}):null,
+          el('span',{class:'link',text:'Đã xem',onclick:function(){var a=tbDaXem().filter(function(m){return (ME.tbQt||[]).some(function(x){return x.ma===m})});a.push(t.ma);
+            try{localStorage.setItem(tbDaXemKey(),JSON.stringify(a))}catch(e){}c.remove()}})])])]);
+    return c;
+  });
+}
 /* ---------- trang chủ ---------- */
 function home(){
   var u=ME.user,c=ME.caps;
@@ -707,7 +743,9 @@ function home(){
     [['1','A'],['1.12','A+'],['1.25','A++']].map(function(x){return el('span',{class:CO_CHU===x[0]?'on':'',text:x[1],onclick:function(){datCoChu(x[0]);home()}})})));
   show([el('div',{class:'card chao'},[el('p',{class:'hello',text:'Xin chào, '+u.ten}),el('div',{},chips),
         el('p',{class:'mut',style:'margin:6px 0 0'},[el('span',{class:'link',text:'🔔 Thông báo',onclick:tbView}),el('span',{text:' · '}),el('span',{class:'link',text:'Đăng xuất',onclick:dangXuat}),el('span',{text:' · '}),coChu]),el('div',{class:'mut',style:'font-size:11px;margin-top:4px',text:'Phiên bản '+BAN_APP})]),
-    moiBatThongBao(),grid]);
+    ME.baoTri&&c.quanTri?el('div',{class:'card btcanh'},[el('b',{text:'🛠️ Đang bật chế độ bảo trì'}),
+      el('div',{class:'mut',text:'Người dùng chỉ thấy trang "Hệ thống đang bảo trì" (dự kiến xong '+denBaoTri(ME.baoTri.den)+'). Tắt ở ⚙️ Quản lý.'})]):null,
+    moiBatThongBao()].concat(tbQtCards(),[grid]));
   $('app').className='home';
 }
 
@@ -3441,6 +3479,7 @@ function qtRender(r){
       el('div',{class:'hint',text:'Các ô "Biên bản / báo cáo" và "Bản đồ" đang xây dựng nên mặc định ẩn. Chọn người nào thì người đó mới thấy ô ở trang chủ; quản trị luôn thấy. Bấm vào tên chức năng để mở danh sách.'}),
       rgBox,el('p',{},[rgBtn]),rgMsg]);
   }
+  var btCard=qtBaoTriCard(r),tbCard=qtThongBaoCard(r),ltCard=qtLuuTruCard();
   var search=el('input',{type:'text',placeholder:'Tìm cán bộ…'}),list=el('div',{});
   function draw(){
     list.innerHTML='';var q=search.value.toLowerCase();
@@ -3456,9 +3495,139 @@ function qtRender(r){
     });
   }
   search.addEventListener('input',draw);draw();
-  show([khCard,exCard,anhCard,rgCard,yc,el('div',{class:'card'},[el('div',{class:'gt',text:'Cán bộ ('+r.nguoi.length+')'}),
+  show([btCard,tbCard,khCard,exCard,anhCard,rgCard,yc,ltCard,el('div',{class:'card'},[el('div',{class:'gt',text:'Cán bộ ('+r.nguoi.length+')'}),
     el('div',{class:'hint',text:'Muốn thêm cán bộ mới hoặc đổi họ tên: sửa trực tiếp sheet NGUOI_DUNG (thêm vào dòng trống cuối). Thay đổi quyền có hiệu lực khi người đó mở lại trang.'}),search]),list],boot);
 }
+/* ⚙️ Quản lý → Bảo trì hệ thống */
+function qtBaoTriCard(r){
+  if(!('baoTri' in r))return null;
+  var bt=r.baoTri,msg=el('div',{}),trang=el('div',{});
+  var bat=el('input',{type:'checkbox'});bat.style.width='auto';bat.checked=!!bt;
+  var mac=new Date(Date.now()+2*3600e3),p2=function(n){return ('0'+n).slice(-2)};
+  var den=el('input',{type:'datetime-local',value:bt?bt.den:mac.getFullYear()+'-'+p2(mac.getMonth()+1)+'-'+p2(mac.getDate())+'T'+p2(mac.getHours())+':00'});
+  var nd=el('textarea',{rows:'2',placeholder:'Nội dung thông báo cho người dùng (không bắt buộc), ví dụ: Nâng cấp phiên bản mới, sao lưu dữ liệu…'});nd.value=bt?bt.noiDung:'';
+  var tuTat=el('input',{type:'checkbox'});tuTat.style.width='auto';tuTat.checked=bt?bt.tuTat:true;
+  var guiTb=el('input',{type:'checkbox'});guiTb.style.width='auto';guiTb.checked=true;
+  var guiNhan=el('span',{});
+  var chiTiet=el('div',{style:'margin:6px 0 0 30px'},[el('label',{class:'l',text:'Dự kiến hoàn thành lúc'}),den,el('label',{class:'l',text:'Nội dung'}),nd,
+    el('label',{style:'display:flex;gap:10px;align-items:center;margin-top:8px'},[tuTat,el('span',{text:'Tự kết thúc bảo trì khi đến thời gian dự kiến'})])]);
+  function ve(){
+    chiTiet.style.display=bat.checked?'':'none';
+    guiNhan.textContent=bat.checked?'Gửi thông báo đẩy báo mọi người':'Gửi thông báo đẩy báo mọi người hệ thống đã hoạt động lại';
+    trang.innerHTML='';trang.appendChild(el('div',{class:bt?'bad':'mut',text:bt?('Đang bảo trì từ '+(bt.tu?bt.tu.slice(11)+' '+fmtVN(bt.tu.slice(0,10)):'')+(bt.boi?' ('+bt.boi+')':'')+', dự kiến xong '+denBaoTri(bt.den)+(bt.tuTat?' – tự kết thúc.':'.')):'Hệ thống đang hoạt động bình thường.'}));
+  }
+  bat.addEventListener('change',ve);ve();
+  var nut=el('button',{class:'p',text:'Lưu',onclick:function(){
+    if(bat.checked&&!den.value){alert('Vui lòng chọn thời gian dự kiến hoàn thành.');return}
+    if(bat.checked&&!bt&&!confirm('Bật chế độ bảo trì?\n\nMọi người (trừ quản trị) sẽ không dùng được ứng dụng cho đến '+denBaoTri(den.value)+(tuTat.checked?'':' hoặc khi bạn tắt')+'.'))return;
+    if(!bat.checked&&!bt){alert('Hệ thống đang không bảo trì.');return}
+    nut.disabled=true;msg.innerHTML='';
+    call('QT_BAOTRI',{bat:bat.checked,den:den.value,noiDung:nd.value,tuTat:tuTat.checked,guiTb:guiTb.checked}).then(function(x){nut.disabled=false;
+      if(x&&x.ok){bt=r.baoTri=x.baoTri;ME.baoTri=x.baoTri;try{cset(ckey('v','ME',{}),ME)}catch(e){}ve();
+        msg.appendChild(el('div',{class:'ok',text:(x.baoTri?'Đã bật bảo trì.':'Đã tắt bảo trì, mọi người dùng lại bình thường.')+(guiTb.checked?' Đã gửi thông báo tới '+x.soMay+' máy.':'')}))}
+      else msg.appendChild(el('div',{class:'bad',text:(x&&x.message)||'Không lưu được.'}));
+    }).catch(function(e){nut.disabled=false;msg.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
+  }});
+  return el('div',{class:'card'},[el('div',{class:'gt',text:'🛠️ Bảo trì hệ thống'}),
+    el('div',{class:'hint',text:'Khi bật: người dùng mở ứng dụng chỉ thấy trang "Hệ thống đang bảo trì" kèm thời gian dự kiến hoàn thành, không dùng được chức năng nào (nhật ký ghi khi mất mạng vẫn giữ trên máy). Quản trị vẫn dùng bình thường.'}),
+    trang,el('label',{style:'display:flex;gap:10px;align-items:center;margin-top:10px'},[bat,el('b',{text:'Bật chế độ bảo trì'})]),chiTiet,
+    el('label',{style:'display:flex;gap:10px;align-items:center;margin-top:8px'},[guiTb,guiNhan]),el('p',{},[nut]),msg]);
+}
+/* ⚙️ Quản lý → Lưu trữ dữ liệu theo năm (sheet ẩn NHAT_KY_<năm>, SO_LIEU_THANG_<năm>, LICH_CONG_TAC_<năm>) */
+function qtLuuTruCard(){
+  var bang=el('div',{}),msg=el('div',{});
+  function ve(tk){
+    bang.innerHTML='';
+    var t=el('table',{class:'khtb'});
+    t.appendChild(el('tr',{},[el('th',{text:'Năm'}),el('th',{text:'Nhật ký'}),el('th',{text:'Số liệu tháng'}),el('th',{text:'Trạng thái'})]));
+    var dong=tk.bangChinh.map(function(x){return {nam:x.nam,nk:x.nhatKy,sl:x.soLieu,o:x.duocLuu?'nut':(x.nam>=tk.namNay?'Năm hiện tại':'')}})
+      .concat(tk.daLuu.map(function(x){return {nam:x.nam,nk:x.nhatKy,sl:x.soLieu,o:'🗄️ Đã lưu trữ'}})).sort(function(a,b){return a.nam-b.nam});
+    dong.forEach(function(x){
+      var o=x.o==='nut'?el('button',{class:'s',style:'padding:6px 12px',text:'Lưu trữ năm '+x.nam,onclick:function(){chay(x)}}):el('span',{class:'mut',text:x.o});
+      t.appendChild(el('tr',{},[el('td',{text:String(x.nam)}),el('td',{text:String(x.nk)}),el('td',{text:String(x.sl)}),el('td',{},[o])]));
+    });
+    bang.appendChild(dong.length?el('div',{class:'cbcuon'},[t]):el('div',{class:'mut',text:'Chưa có dữ liệu.'}));
+  }
+  function chay(x){
+    if(!confirm('LƯU TRỮ DỮ LIỆU NĂM '+x.nam+'\n\n• '+x.nk+' dòng nhật ký và '+x.sl+' dòng số liệu tháng năm '+x.nam+' sẽ chuyển sang các sheet ẩn NHAT_KY_'+x.nam+', SO_LIEU_THANG_'+x.nam+'; tạo thêm bảng LICH_CONG_TAC_'+x.nam+'.\n• Sau đó dữ liệu năm '+x.nam+' chỉ XEM được (lịch, báo cáo, nhật ký, số liệu tháng vẫn xem như cũ), không ghi/sửa/xóa được nữa.\n• Trong lúc chạy hệ thống tự bật bảo trì (1–2 phút).\n\nNên tạo bản sao file Google Sheets trước (Tệp → Tạo bản sao). Tiếp tục?'))return;
+    msg.innerHTML='';msg.appendChild(el('div',{class:'mut',text:'⏳ Đang lưu trữ năm '+x.nam+'… có thể mất 1–2 phút, không đóng ứng dụng.'}));
+    bang.querySelectorAll('button').forEach(function(b){b.disabled=true});
+    call('QT_LUUTRU',{nam:x.nam,chay:1}).then(function(k){msg.innerHTML='';
+      if(k&&k.ok){msg.appendChild(el('div',{class:'ok',text:'Đã lưu trữ năm '+k.nam+': '+k.nhatKy+' dòng nhật ký, '+k.soLieu+' dòng số liệu tháng'+(k.lich?', bảng lịch công tác':'')+'. Bảng chính còn '+k.conNhatKy+' dòng nhật ký, '+k.conSoLieu+' dòng số liệu tháng.'}));
+        if(k.lichLoi)msg.appendChild(el('div',{class:'bad',text:'Chưa tạo được bảng lịch công tác: '+k.lichLoi}));
+        cxoa('v',true);ve(k.thongKe)}
+      else{msg.appendChild(el('div',{class:'bad',text:(k&&k.message)||'Không lưu trữ được.'}));tai()}
+    }).catch(function(e){msg.innerHTML='';msg.appendChild(el('div',{class:'bad',text:errMsg(e)+' – mở lại thẻ này để xem kết quả.'}))});
+  }
+  function tai(){
+    bang.innerHTML='';bang.appendChild(el('div',{class:'mut',text:'Đang đếm dữ liệu…'}));
+    call('QT_LUUTRU',{xem:1}).then(function(k){if(k&&k.ok)ve(k.thongKe);else{bang.innerHTML='';bang.appendChild(el('div',{class:'bad',text:(k&&k.message)||'Lỗi'}))}})
+      .catch(function(e){bang.innerHTML='';bang.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
+  }
+  var mo=el('details',{},[el('summary',{style:'cursor:pointer',text:'Xem dữ liệu theo năm'}),bang,msg]);
+  mo.addEventListener('toggle',function(){if(mo.open&&!bang.childNodes.length)tai()});
+  return el('div',{class:'card'},[el('div',{class:'gt',text:'🗄️ Lưu trữ dữ liệu theo năm'}),
+    el('div',{class:'hint',text:'Khi bảng tính nhiều dòng làm ứng dụng chậm: chuyển nhật ký, số liệu tháng của các năm trước sang sheet ẩn riêng của từng năm (kèm bảng lịch công tác năm đó). Xem lịch, báo cáo, nhật ký, số liệu tháng của năm đã lưu trữ vẫn như cũ; chỉ không ghi/sửa/xóa được. Nên làm sau khi đã chốt số liệu năm (ví dụ tháng 2 năm sau).'}),
+    mo]);
+}
+/* ⚙️ Quản lý → Gửi thông báo cho người dùng */
+function qtThongBaoCard(r){
+  if(!('tbDs' in r))return null;
+  var msg=el('div',{}),ls=el('div',{});
+  var td=el('input',{type:'text',maxlength:'80',placeholder:'Tiêu đề, ví dụ: Họp giao ban'});
+  var nd=el('textarea',{rows:'3',maxlength:'500',placeholder:'Nội dung thông báo (tối đa 500 ký tự)'});
+  var dem=el('div',{class:'mut',style:'font-size:12px;text-align:right',text:'0/500'});nd.addEventListener('input',function(){dem.textContent=nd.value.length+'/500'});
+  var tatCa=el('input',{type:'radio',name:'tbnhan'}),chonNg=el('input',{type:'radio',name:'tbnhan'});tatCa.style.width=chonNg.style.width='auto';tatCa.checked=true;
+  var chon={},nguoi=r.nguoi.filter(function(u){return u.hoatDong});
+  var dsNg=el('div',{class:'pick',style:'max-height:220px;overflow:auto;margin:6px 0 0 30px'},nguoi.map(function(u){
+    var x=el('input',{type:'checkbox'});x.style.width='auto';x.addEventListener('change',function(){chon[u.ten]=x.checked});
+    return el('label',{style:'display:flex;gap:10px;align-items:center;margin:4px 0'},[x,el('span',{text:u.ten+(u.email?'':' (chưa liên kết)')})]);
+  }));
+  var veNhan=function(){dsNg.style.display=chonNg.checked?'':'none'};tatCa.addEventListener('change',veNhan);chonNg.addEventListener('change',veNhan);veNhan();
+  var soNgay=el('select',{},[['1','1 ngày (hôm nay)'],['3','3 ngày'],['7','7 ngày'],['14','14 ngày'],['30','30 ngày']].map(function(x){return el('option',{value:x[0],text:x[1]})}));soNgay.value='7';
+  var mo=el('select',{},[['','Trang chủ'],['nv','Nhiệm vụ'],['lich','Lịch công tác'],['cm','Hoạt động chuyên môn']].map(function(x){return el('option',{value:x[0],text:x[1]})}));
+  function veLs(){
+    ls.innerHTML='';
+    if(!r.tbDs.length){ls.appendChild(el('div',{class:'mut',text:'Chưa gửi thông báo nào.'}));return}
+    r.tbDs.forEach(function(t){
+      var het=t.thuHoi||t.den<homNayStr();
+      ls.appendChild(el('div',{class:'item'+(het?' st-bad':'')},[el('div',{class:'top'},[el('div',{class:'hd',text:t.tieuDe}),
+        !het?el('button',{class:'s',style:'padding:6px 12px',text:'Thu hồi',onclick:function(){
+          if(!confirm('Thu hồi thông báo "'+t.tieuDe+'"?\nThông báo sẽ không còn hiện trên trang chủ (thông báo đẩy đã gửi tới điện thoại thì không thu lại được).'))return;
+          call('QT_TB_XOA',{ma:t.ma}).then(function(x){if(x&&x.ok){r.tbDs=x.tbDs;veLs()}else alert((x&&x.message)||'Không thu hồi được.')}).catch(function(e){alert(errMsg(e))});
+        }}):null]),
+        el('div',{style:'white-space:pre-wrap',text:t.noiDung}),
+        el('div',{class:'mut',style:'font-size:12px',text:t.ma+' · '+fmtVN(t.luc.slice(0,10))+' '+t.luc.slice(11)+' · '+t.boi+' → '+t.nhan+' · '+t.soMay+' máy nhận · '+(t.thuHoi?'đã thu hồi':(het?'hết hạn hiển thị':'hiện đến '+fmtVN(t.den)))})]));
+    });
+  }
+  veLs();
+  var nut=el('button',{class:'p',text:'📢 Gửi thông báo',onclick:function(){
+    var nhan=Object.keys(chon).filter(function(t){return chon[t]});
+    if(!td.value.trim()){alert('Vui lòng nhập tiêu đề.');return}
+    if(!nd.value.trim()){alert('Vui lòng nhập nội dung.');return}
+    if(chonNg.checked&&!nhan.length){alert('Vui lòng chọn người nhận.');return}
+    if(!confirm('Gửi thông báo "'+td.value.trim()+'" tới '+(tatCa.checked?'tất cả cán bộ':nhan.length+' người')+'?'))return;
+    nut.disabled=true;msg.innerHTML='';
+    call('QT_THONGBAO',{tieuDe:td.value,noiDung:nd.value,tatCa:tatCa.checked,nhan:nhan,soNgay:soNgay.value,mo:mo.value}).then(function(x){nut.disabled=false;
+      if(x&&x.ok){
+        msg.appendChild(el('div',{class:'ok',text:'Đã gửi '+x.ma+' tới '+x.soNguoi+' người'+(x.coDay?' ('+x.soMay+' máy nhận thông báo đẩy)':'')+'. Thông báo hiện trên trang chủ ứng dụng đến hết '+fmtVN(x.den)+'.'}));
+        if(!x.coDay)msg.appendChild(el('div',{class:'hint',text:'Chưa cấu hình thông báo đẩy (FCM_SA) – người dùng chỉ thấy thông báo khi mở ứng dụng.'}));
+        else if(x.chuaBat&&x.chuaBat.length)msg.appendChild(el('div',{class:'hint',text:'Chưa bật thông báo đẩy trên máy nào (chỉ thấy khi mở ứng dụng): '+x.chuaBat.join(', ')+'.'}));
+        if(x.loi)msg.appendChild(el('div',{class:'bad',text:'Lỗi gửi: '+x.loi}));
+        td.value='';nd.value='';dem.textContent='0/500';
+        call('QT_CAUHINH').then(function(y){if(y&&y.ok){r.tbDs=y.tbDs;veLs()}}).catch(function(){});
+      }else msg.appendChild(el('div',{class:'bad',text:(x&&x.message)||'Không gửi được.'}));
+    }).catch(function(e){nut.disabled=false;msg.appendChild(el('div',{class:'bad',text:errMsg(e)}))});
+  }});
+  return el('div',{class:'card'},[el('div',{class:'gt',text:'📢 Gửi thông báo cho người dùng'}),
+    el('div',{class:'hint',text:'Gửi thông báo đẩy tới điện thoại/máy tính đã bật 🔔 Thông báo, đồng thời hiện ở đầu trang chủ ứng dụng (người chưa bật thông báo đẩy vẫn thấy khi mở ứng dụng) trong số ngày chọn.'}),
+    el('label',{class:'l',text:'Tiêu đề'}),td,el('label',{class:'l',text:'Nội dung'}),nd,dem,
+    el('label',{class:'l',text:'Người nhận'}),el('label',{style:'display:flex;gap:10px;align-items:center'},[tatCa,el('span',{text:'Tất cả cán bộ'})]),
+    el('label',{style:'display:flex;gap:10px;align-items:center;margin-top:4px'},[chonNg,el('span',{text:'Chọn người'})]),dsNg,
+    el('label',{class:'l',text:'Hiện trên trang chủ trong'}),soNgay,el('label',{class:'l',text:'Chạm vào thông báo thì mở'}),mo,
+    el('p',{},[nut]),msg,el('details',{style:'margin-top:8px'},[el('summary',{style:'cursor:pointer',text:'Thông báo đã gửi ('+r.tbDs.length+')'}),ls])]);
+}
+function homNayStr(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
 function qtForm(r,u){
   var sel=function(opts,val,blank){var s=el('select',{},(blank?[el('option',{value:'',text:blank})]:[]).concat(opts.map(function(o){return el('option',{value:o,text:o})})));
     if(val&&opts.indexOf(val)<0)s.appendChild(el('option',{value:val,text:val+' (không có trong danh mục)'}));s.value=val||'';return s};
